@@ -69,15 +69,15 @@ int main(int argc, char **argv)
 
 		// Part 3 - memory allocation
 		// host - input (comment the following 2 lines in Section 2.7)
-		// std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }; //C++11 allows this type of initialisation
+		// std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }; // C++ 11 allows this type of initialisation
 		// std::vector<int> B = { 0, 1, 2, 0, 1, 2, 0, 1, 2, 0 };
 
 		// accommodate larger input arrays (Section 2.7)
 		std::vector<int> A(1000000);
 		std::vector<int> B(1000000);
 		
-		size_t vector_elements = A.size();//number of elements
-		size_t vector_size = A.size()*sizeof(int);//size in bytes
+		size_t vector_elements = A.size();// number of elements
+		size_t vector_size = A.size()*sizeof(int);// size in bytes
 
 		// host - output
 		std::vector<int> C(vector_elements);
@@ -89,9 +89,13 @@ int main(int argc, char **argv)
 
 		// Part 4 - device operations
 
-		// 4.1 Copy arrays A and B to device memory
-		queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, vector_size, &A[0]);
-		queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, vector_size, &B[0]);
+		// 4.1 Copy arrays A and B to device memory (comment the following 2 lines in Section 2.7)
+		// queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, vector_size, &A[0]);
+		// queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, vector_size, &B[0]);
+		// add additional events to measure the upload time for input vectors A and B
+		cl::Event A_event, B_event;
+		queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, vector_size, &A[0], NULL, &A_event);
+		queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, vector_size, &B[0], NULL, &B_event);
 
 		// 4.2 Setup and execute the kernel (i.e. device code)
 		cl::Kernel kernel_add = cl::Kernel(program, "add");
@@ -104,15 +108,29 @@ int main(int argc, char **argv)
 		cl::Event prof_event;
 		queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
 
-		// 4.3 Copy the result from device to host
-		queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0]);
+		// 4.3 Copy the result from device to host (comment the following 1 line in Section 2.7)
+		// queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0]);
+		// add an additional event to measure the download time for the output vector C
+		cl::Event C_event;
+		queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0], NULL, &C_event);
 
 		// comment the following 3 lines in Section 2.7
 		// std::cout << "A = " << A << std::endl;
 		// std::cout << "B = " << B << std::endl;
 		// std::cout << "C = " << C << std::endl;
-		std::cout << "Kernel execution time (ns): " << prof_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event.getProfilingInfo<CL_PROFILING_COMMAND_START>() << std::endl; // display the kernel execution time in nanoseconds (Section 2.6)
-		std::cout << "Detailed breakdown of event (us): " << GetFullProfilingInfo(prof_event, ProfilingResolution::PROF_US) << std::endl; // display the detailed breakdown of the event in microseconds (Section 2.6) 
+		cl_ulong uploadTime_A = A_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - A_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+		cl_ulong uploadTime_B = B_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - B_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+		cl_ulong downloadTime_C = C_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - C_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+		cl_ulong kernelExecutionTime = prof_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+
+		std::cout << "Total memory transfer time (unit: ns): " << uploadTime_A + uploadTime_B + downloadTime_C << std::endl; // display the total memory transfer time in nanoseconds (Section 2.7)
+		std::cout << "Upload time for input vectors (unit: ns): A " << uploadTime_A << ", B " << uploadTime_B << std::endl; // display the upload time for input vectors A and B in nanoseconds (Section 2.7)
+		std::cout << "Download time for the output vector C (unit: ns): " << downloadTime_C << std::endl << std:: endl; // display the download time for the output vector C in nanoseconds (Section 2.7)
+		
+		std::cout << "Kernel execution time (unit: ns): " << kernelExecutionTime << std::endl; // display the kernel execution time in nanoseconds (Section 2.6)
+		std::cout << "Detailed breakdown of event (unit: us): " << GetFullProfilingInfo(prof_event, ProfilingResolution::PROF_US) << std::endl << std::endl; // display the detailed breakdown of the event in microseconds (Section 2.6)
+
+		std::cout << "Overall operation time (unit: ns): " << kernelExecutionTime + uploadTime_A + uploadTime_B + downloadTime_C << std::endl; // display the overall operation time in nanoseconds (Section 2.7)
 	}
 	catch (cl::Error err)
 	{
