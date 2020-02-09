@@ -108,6 +108,16 @@ int main(int argc, char **argv)
 		// create an event and attach it to a queue command responsible for the kernel launch (Section 2.6)
 		cl::Event prof_event;
 		queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
+		// define the work group size or local size (5) manually when calling the kernel (Section 1 in Tutorial 2)
+		// queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NDRange(5));
+
+		// cl::Device device = context.getInfo<CL_CONTEXT_DEVICES>()[0]; // get the device
+		/*
+		 * get the smallest work group size suggested (Section 1 in Tutorial 2);
+		 * its multiples are also possible, up to the maximum work group size
+		*/
+		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device) << endl;
+		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) << endl; // get the maximum work group size (Section 1 in Tutorial 2)
 
 		// 4.3 Copy the result from device to host (comment the following 1 line in Section 2.7)
 		// queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0]);
