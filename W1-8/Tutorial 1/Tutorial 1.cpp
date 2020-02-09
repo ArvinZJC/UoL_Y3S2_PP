@@ -3,7 +3,8 @@
 
 #include "Utils.h"
 
-void print_help() {
+void print_help()
+{
 	std::cerr << "Application usage:" << std::endl;
 
 	std::cerr << "  -p : select platform " << std::endl;
