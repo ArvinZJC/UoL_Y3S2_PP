@@ -76,8 +76,8 @@ int main(int argc, char** argv)
 		std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }; // C++ 11 allows this type of initialisation
 		std::vector<int> B = { 0, 1, 2, 0, 1, 2, 0, 1, 2, 0 };
 
-		size_t vector_elements = A.size();// number of elements
-		size_t vector_size = A.size() * sizeof(int);// size in bytes
+		size_t vector_elements = A.size(); // number of elements
+		size_t vector_size = A.size() * sizeof(int); // size in bytes
 
 		// host - output
 		std::vector<int> C(vector_elements);

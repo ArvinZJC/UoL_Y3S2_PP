@@ -77,8 +77,8 @@ int main(int argc, char **argv)
 		std::vector<int> A(1000000);
 		std::vector<int> B(1000000);
 		
-		size_t vector_elements = A.size();// number of elements
-		size_t vector_size = A.size()*sizeof(int);// size in bytes
+		size_t vector_elements = A.size(); // number of elements
+		size_t vector_size = A.size() * sizeof(int); // size in bytes
 
 		// host - output
 		std::vector<int> C(vector_elements);
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 		/*
 		 * get the smallest work group size suggested (Section 1 in Tutorial 2);
 		 * its multiples are also possible, up to the maximum work group size
-		*/
+		 */
 		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device) << endl;
 		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) << endl; // get the maximum work group size (Section 1 in Tutorial 2)
 

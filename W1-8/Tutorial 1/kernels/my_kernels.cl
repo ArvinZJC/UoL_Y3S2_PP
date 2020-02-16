@@ -18,13 +18,6 @@ kernel void add(global const int* A, global const int* B, global int* C)
 	C[id] = A[id] + B[id];
 } // end function add
 
-// a simple smoothing kernel averaging values in a local window (radius 1)
-kernel void avg_filter(global const int* A, global int* B)
-{
-	int id = get_global_id(0);
-	B[id] = (A[id - 1] + A[id] + A[id + 1])/3;
-} // end function avg_filter
-
 // a simple 2D kernel
 kernel void add2D(global const int* A, global const int* B, global int* C)
 {
