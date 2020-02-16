@@ -49,10 +49,13 @@ int main(int argc, char **argv)
 		CImg<unsigned char> image_input(image_filename.c_str());
 		CImgDisplay disp_input(image_input,"input");
 
-		// a 3x3 convolution mask implementing an averaging filter
-		std::vector<float> convolution_mask = { 1.f / 9, 1.f / 9, 1.f / 9,
-												1.f / 9, 1.f / 9, 1.f / 9,
-												1.f / 9, 1.f / 9, 1.f / 9 };
+		/*
+		 * a 3x3 convolution mask for Gaussian blur (uncomment it in Section 3.2.2);
+		 * for more convolution masks, you can refer to: https://en.wikipedia.org/wiki/Kernel_(image_processing)
+		 */
+		std::vector<float> convolution_mask = { 1.f / 16, 2.f / 16, 1.f / 16,
+												2.f / 16, 4.f / 16, 2.f / 16,
+												1.f / 16, 2.f / 16, 1.f / 16 };
 
 		// Part 3 - host operations
 		// 3.1 Select computing devices
@@ -89,21 +92,30 @@ int main(int argc, char **argv)
 		// device - buffers
 		cl::Buffer dev_image_input(context, CL_MEM_READ_ONLY, image_input.size());
 		cl::Buffer dev_image_output(context, CL_MEM_READ_WRITE, image_input.size()); //should be the same as input image
-		// cl::Buffer dev_convolution_mask(context, CL_MEM_READ_ONLY, convolution_mask.size()*sizeof(float));
+		cl::Buffer dev_convolution_mask(context, CL_MEM_READ_ONLY, convolution_mask.size() * sizeof(float)); // only uncomment it in Section 3.2.2
 
 		// 4.1 Copy images to device memory
 		queue.enqueueWriteBuffer(dev_image_input, CL_TRUE, 0, image_input.size(), &image_input.data()[0]);
-		// queue.enqueueWriteBuffer(dev_convolution_mask, CL_TRUE, 0, convolution_mask.size()*sizeof(float), &convolution_mask[0]);
+		queue.enqueueWriteBuffer(dev_convolution_mask, CL_TRUE, 0, convolution_mask.size() * sizeof(float), &convolution_mask[0]); // only uncomment it in Section 3.2.2
 
 		// 4.2 Setup and execute the kernel (i.e. device code)
-		cl::Kernel kernel = cl::Kernel(program, "identity");
+		// cl::Kernel kernel = cl::Kernel(program, "identity"); // a simple 1D identity kernel that copies all pixels from A to B (original code for Section 2)
+		// cl::Kernel kernel = cl::Kernel(program, "filter_r"); // perform colour channel filtering (Task4U-1 in Section 2)
+		// cl::Kernel kernel = cl::Kernel(program, "invert"); // invert the intensity value of each pixel (Task4U-2 in Section 2)
+		// cl::Kernel kernel = cl::Kernel(program, "rgb2grey"); // convert an input colour image into greyscale (Task4U-4 in Section 2)
+		// cl::Kernel kernel = cl::Kernel(program, "identityND"); // a simple ND identity kernel (Section 3.2)
+		// cl::Kernel kernel = cl::Kernel(program, "avg_filterND"); // a 2D averaging filter (Section 3.2)
+		cl::Kernel kernel = cl::Kernel(program, "convolutionND"); // a 2D 3x3 convolution kernel (Section 3.2.2)
 		kernel.setArg(0, dev_image_input);
 		kernel.setArg(1, dev_image_output);
-		// kernel.setArg(2, dev_convolution_mask);
+		kernel.setArg(2, dev_convolution_mask); // only uncomment it in Section 3.2.2
 
-		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange);
+		// queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange);
+		// run a kernel in a 3D arrangement with image width, height, spectrum (colour channel) specifying values for 3 dimensions (Section 3.2, including Sections 3.2.1 & 3.2.2)
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.width(), image_input.height(), image_input.spectrum()), cl::NullRange);
 
 		vector<unsigned char> output_buffer(image_input.size());
+
 		// 4.3 Copy the result from device to host
 		queue.enqueueReadBuffer(dev_image_output, CL_TRUE, 0, output_buffer.size(), &output_buffer.data()[0]);
 
@@ -116,7 +128,6 @@ int main(int argc, char **argv)
 		    disp_input.wait(1);
 		    disp_output.wait(1);
 	    } // end while
-
 	}
 	catch (const cl::Error& err)
 	{
