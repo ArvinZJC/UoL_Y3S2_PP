@@ -4,4 +4,4 @@ This repository contains code written for practising the knowledge gained from t
 
 ## ATTENTION
 
-1. By 18 February 2018, everything looks good with VS 2019 + Intel SDK for OpenCL Applications 2020.0.245.
+1. By 18 February 2018, everything looks good with VS 2019 + C++ 14 + Intel SDK for OpenCL Applications 2020.0.245.
