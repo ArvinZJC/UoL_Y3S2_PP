@@ -1,4 +1,6 @@
-# OpenCL Tutorials
+# W1-8 From the Project UoL_Y3S2_PP
+
+This project contains OpenCL tutorials modified from a version provided by the lecturers of the course **Parallel Programming**. The original version is available in [the specified repository on GitHub](https://github.com/gcielniak/OpenCL-Tutorials).
 
 ## Windows Setup
 
