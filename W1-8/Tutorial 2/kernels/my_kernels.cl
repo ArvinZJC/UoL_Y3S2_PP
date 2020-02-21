@@ -79,27 +79,19 @@ kernel void avg_filterND(global const uchar* A, global uchar* B)
 	int c = get_global_id(2); // current colour channel
 
 	int id = x + y * width + c * image_size; // global id in 1D space
-
-	// one way to handle the boundary conditions
-	if (x == 0)
-		x = 1;
-
-	if (x == width - 1)
-		x = width - 2;
-
-	if (y == 0)
-		y = 1;
-
-	if (y == height - 1)
-		y = height - 2;
-
 	uint result = 0;
 
-	for (int i = x - 1; i <= x + 1; i++)
-		for (int j = y - 1; j <= y + 1; j++) 
-			result += A[i + j * width + c * image_size];
+	// one way to handle the boundary conditions (just copy the original pixel)
+	if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+		result = A[id];
+	else
+	{
+		for (int i = x - 1; i <= x + 1; i++)
+			for (int j = y - 1; j <= y + 1; j++) 
+				result += A[i + j * width + c * image_size];
 
-	result /= 9;
+		result /= 9;
+	} // end if...else
 
 	B[id] = (uchar)result;
 } // end function avg_filterND
@@ -117,25 +109,15 @@ kernel void convolutionND(global const uchar* A, global uchar* B, constant float
 	int c = get_global_id(2); // current colour channel
 
 	int id = x + y * width + c * image_size; // global id in 1D space
-
-	// one way to handle the boundary conditions
-	if (x == 0)
-		x = 1;
-
-	if (x == width - 1)
-		x = width - 2;
-
-	if (y == 0)
-		y = 1;
-
-	if (y == height - 1)
-		y = height - 2;
-
 	float result = 0;
 
-	for (int i = x - 1; i <= x + 1; i++)
-		for (int j = y - 1; j <= y + 1; j++) 
-			result += A[i + j * width + c * image_size] * mask[i - (x - 1) + j - (y - 1)];
+	// one way to handle the boundary conditions (just copy the original pixel)
+	if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+		result = A[id];
+	else
+		for (int i = x - 1; i <= x + 1; i++)
+			for (int j = y - 1; j <= y + 1; j++) 
+				result += A[i + j * width + c * image_size] * mask[i - (x - 1) + j - (y - 1)];
 
 	B[id] = (uchar)result;
 } // end function convolutionND
