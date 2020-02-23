@@ -6,7 +6,6 @@
 void print_help()
 {
 	std::cerr << "Application usage:" << std::endl;
-
 	std::cerr << "  -p : select platform " << std::endl;
 	std::cerr << "  -d : select device" << std::endl;
 	std::cerr << "  -l : list all platforms and devices" << std::endl;
@@ -41,11 +40,9 @@ int main(int argc, char **argv)
 		// 2.1 Select computing devices
 		cl::Context context = GetContext(platform_id, device_id);
 
-		// display the selected device
-		std::cout << "Runinng on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl;
+		std::cout << "Runinng on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl; // display the selected device
 
-		// create a queue to which we will push commands for the device
-		cl::CommandQueue queue(context);
+		cl::CommandQueue queue(context); // create a queue to which we will push commands for the device
 
 		// 2.2 Load & build the device code
 		cl::Program::Sources sources;
@@ -75,8 +72,7 @@ int main(int argc, char **argv)
 		size_t vector_elements = A.size(); // number of elements
 		size_t vector_size = A.size() * sizeof(int); // size in bytes
 
-		// host - output
-		std::vector<int> C(vector_elements);
+		std::vector<int> C(vector_elements); // host - output
 
 		// device - buffers
 		cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, vector_size);
@@ -84,7 +80,6 @@ int main(int argc, char **argv)
 		cl::Buffer buffer_C(context, CL_MEM_READ_WRITE, vector_size);
 
 		// Part 4 - device operations
-
 		// 4.1 Copy arrays A and B to device memory
 		queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, vector_size, &A[0]);
 		queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, vector_size, &B[0]);

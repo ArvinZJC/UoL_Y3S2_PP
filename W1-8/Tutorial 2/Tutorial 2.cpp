@@ -9,7 +9,6 @@ using namespace cimg_library;
 void print_help()
 {
 	std::cerr << "Application usage:" << std::endl;
-
 	std::cerr << "  -p : select platform " << std::endl;
 	std::cerr << "  -d : select device" << std::endl;
 	std::cerr << "  -l : list all platforms and devices" << std::endl;
@@ -39,7 +38,7 @@ int main(int argc, char **argv)
 			print_help();
 			return 0;
 		} // end nested if...else
-	} // emd for
+	} // end for
 
 	cimg::exception_mode(0);
 
@@ -61,11 +60,9 @@ int main(int argc, char **argv)
 		// 3.1 Select computing devices
 		cl::Context context = GetContext(platform_id, device_id);
 
-		// display the selected device
-		std::cout << "Runing on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl;
+		std::cout << "Runing on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl; // display the selected device
 
-		// create a queue to which we will push commands for the device
-		cl::CommandQueue queue(context);
+		cl::CommandQueue queue(context); // create a queue to which we will push commands for the device
 
 		// 3.2 Load & build the device code
 		cl::Program::Sources sources;
@@ -88,10 +85,9 @@ int main(int argc, char **argv)
 		} // end try...catch
 
 		// Part 4 - device operations
-
 		// device - buffers
 		cl::Buffer dev_image_input(context, CL_MEM_READ_ONLY, image_input.size());
-		cl::Buffer dev_image_output(context, CL_MEM_READ_WRITE, image_input.size()); //should be the same as input image
+		cl::Buffer dev_image_output(context, CL_MEM_READ_WRITE, image_input.size()); // it should be the same as input image
 		cl::Buffer dev_convolution_mask(context, CL_MEM_READ_ONLY, convolution_mask.size() * sizeof(float)); // only uncomment it in Section 3.2.2
 
 		// 4.1 Copy images to device memory
@@ -111,8 +107,7 @@ int main(int argc, char **argv)
 		kernel.setArg(2, dev_convolution_mask); // only uncomment it in Section 3.2.2
 
 		// queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange);
-		// run a kernel in a 3D arrangement with image width, height, spectrum (colour channel) specifying values for 3 dimensions (Section 3.2, including Sections 3.2.1 & 3.2.2)
-		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.width(), image_input.height(), image_input.spectrum()), cl::NullRange);
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.width(), image_input.height(), image_input.spectrum()), cl::NullRange); // run a kernel in a 3D arrangement with image width, height, spectrum (colour channel) specifying values for 3 dimensions (Section 3.2, including Sections 3.2.1 & 3.2.2)
 
 		vector<unsigned char> output_buffer(image_input.size());
 
