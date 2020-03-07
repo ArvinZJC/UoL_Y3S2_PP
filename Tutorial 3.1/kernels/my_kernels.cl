@@ -1,4 +1,4 @@
-// fixed 4-step reduce
+// fixed 4-step reduce using interleaved addressing
 kernel void reduce_add_1(global const int* A, global int* B)
 {
 	int id = get_global_id(0);
@@ -32,7 +32,7 @@ kernel void reduce_add_1(global const int* A, global int* B)
 		B[id] += B[id + 8];
 } // end function reduce_add_1
 
-// flexible step reduce 
+// flexible step reduce using interleaved addressing
 kernel void reduce_add_2(global const int* A, global int* B)
 {
 	int id = get_global_id(0);
@@ -53,7 +53,7 @@ kernel void reduce_add_2(global const int* A, global int* B)
 	} // end for
 } // end function reduce_add_2
 
-// reduce using local memory (so-called privatisation)
+// reduce using local memory (so-called privatisation) and interleaved addressing
 kernel void reduce_add_3(global const int* A, global int* B, local int* scratch)
 {
 	int id = get_global_id(0);
@@ -76,7 +76,7 @@ kernel void reduce_add_3(global const int* A, global int* B, local int* scratch)
 } // end function reduce_add_3
 
 /*
- * reduce using local memory + accumulation of local sums into a single location;
+ * reduce using local memory + accumulation of local sums into a single location and interleaved addressing;
  * it works with any number of groups - not optimal
  */
 kernel void reduce_add_4(global const int* A, global int* B, local int* scratch)
@@ -103,26 +103,71 @@ kernel void reduce_add_4(global const int* A, global int* B, local int* scratch)
 	 * copy the cache to output array
 	 */
 	if (!lid)
-		atomic_add(&B[0],scratch[lid]);
+		atomic_add(&B[0], scratch[lid]);
 } // end function reduce_add_4
 
+/*
+ * reduce using local memory + accumulation of local sums into a single location and sequential addressing;
+ * it works with any number of groups - not optimal
+ */
+kernel void reduce_add_5(global const int* A, global int* B, local int* scratch)
+{
+	int id = get_global_id(0);
+	int lid = get_local_id(0);
+	int N = get_local_size(0);
+
+	scratch[lid] = A[id]; // cache all N values from global memory to local memory
+
+	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish copying from global to local memory
+
+	for (int i = N / 2; i > 0; i >>= 1)
+	{
+		if (i % 2)
+			scratch[0] += scratch[2 * i + 1];
+
+		if (lid < i)
+			scratch[lid] += scratch[lid + i];
+		
+		barrier(CLK_LOCAL_MEM_FENCE);
+	} // end for
+	
+	/*
+	 * we add results from all local groups to the first element of the array;
+	 * serial operation, but works for any group size;
+	 * copy the cache to output array
+	 */
+	if (!lid)
+		atomic_add(&B[0], scratch[lid]);
+} // end function reduce_add_5
+
 // a very simple histogram implementation
-kernel void hist_simple(global const int* A, global int* H)
+kernel void hist_1(global const int* A, global int* H)
 { 
 	int id = get_global_id(0);
+	int bin_index = A[id]; // take value as a bin index
 
-	/*
-	 * assume that H has been initialised to 0;
-	 * take value as a bin index
-	 */
-	int bin_index = A[id];
+	// assume that H has been initialised to 0;
 
 	atomic_inc(&H[bin_index]); // serial operation, not very efficient
-} // end function hist_simple
+} // end function hist_1
+
+// a simple histogram implementation considering the number of bins
+kernel void hist_2(global const int* A, global int* H, int nr_bins)
+{
+	int id = get_global_id(0);
+	int bin_index = A[id]; // take value as a bin index
+
+	if (id < nr_bins)
+		H[id] = 0;
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	atomic_inc(&H[bin_index]);
+} // end function hist_2
 
 /*
  * Hillis-Steele basic inclusive scan;
- * require additional buffer B to avoid data overwrite
+ * require additional buffer B to avoid data overwriting
  */
 kernel void scan_hs(global int* A, global int* B)
 {
@@ -136,7 +181,7 @@ kernel void scan_hs(global int* A, global int* B)
 
 		if (id >= stride)
 			B[id] += A[id - stride];
-
+		
 		barrier(CLK_GLOBAL_MEM_FENCE); // sync the step
 
 		// swap A & B between steps
@@ -144,6 +189,8 @@ kernel void scan_hs(global int* A, global int* B)
 		A = B;
 		B = C;
 	} // end for
+
+	B[id] = A[id];
 } // end function scan_hs
 
 /*
@@ -161,6 +208,7 @@ kernel void scan_add(__global const int* A, global int* B, local int* scratch_1,
 
 	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish copying from global to local memory
 
+	// "i" represents the stride
 	for (int i = 1; i < N; i *= 2)
 	{
 		if (lid >= i)

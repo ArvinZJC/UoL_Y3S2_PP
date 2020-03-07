@@ -1,13 +1,16 @@
-// a simple 2D kernel (Section 3.2 in Tutorial 2)
-kernel void add2D(global const int* A, global const int* B, global int* C)
+// a simple smoothing kernel averaging values in a local window of size 3/radius 1 (Section 3.1 in Tutorial 2)
+kernel void avg_filter(global const int* A, global int* B)
 {
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int width = get_global_size(0);
-	int height = get_global_size(1);
-	int id = x + y * width;
+	int id = get_global_id(0);
+	int size = get_global_size(0);
+	int id_new = id;
 
-	// printf("id = %d x = %d y = %d w = %d h = %d\n", id, x, y, width, height); // help to better understand the function
+	// one way to handle the boundary conditions
+	if (id == 0)
+		id_new = 1;
+	
+	if (id == size - 1)
+		id_new = size - 2;
 
-	C[id]= A[id]+ B[id];
-} // end function add2D
+	B[id] = (A[id_new - 1] + A[id_new] + A[id_new + 1]) / 3;
+} // end function avg_filter

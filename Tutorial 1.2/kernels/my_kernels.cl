@@ -1,16 +1,20 @@
-// a simple smoothing kernel averaging values in a local window of size 3/radius 1 (Section 3.1 in Tutorial 2)
-kernel void avg_filter(global const int* A, global int* B)
+// a simple OpenCL kernel which adds two vectors A and B together into a third vector C
+kernel void add(global const int* A, global const int* B, global int* C)
 {
 	int id = get_global_id(0);
-	int size = get_global_size(0);
-	int id_new = id;
+	C[id] = A[id] + B[id];
+} // end function add
 
-	// one way to handle the boundary conditions
-	if (id == 0)
-		id_new = 1;
-	
-	if (id == size - 1)
-		id_new = size - 2;
+// a simple OpenCL kernel which multiply two vectors A and B together into a third vector C
+kernel void mult(global const int* A, global const int* B, global int* C)
+{
+	int id = get_global_id(0);
+	C[id] = A[id] * B[id];
+} // end function mult
 
-	B[id] = (A[id_new - 1] + A[id_new] + A[id_new + 1]) / 3;
-} // end function avg_filter
+// a simple OpenCL kernel which multiply two vectors A and B and then add to B to get a third vector C
+kernel void multadd(global const int* A, global const int* B, global int* C)
+{
+	int id = get_global_id(0);
+	C[id] = A[id] * B[id] + B[id];
+} // end function multadd

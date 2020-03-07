@@ -2,19 +2,32 @@
 kernel void add(global const int* A, global const int* B, global int* C)
 {
 	int id = get_global_id(0);
+
+	// printf("Work item ID = %d\n", id); // use the printf function and better understand the get_global_id function (Section 1 in Tutorial 2)
+	
+	/*
+	// better understand the get_local_id and get_local_size functions (Section 1 in Tutorial 2)
+	if (id == 0)
+		printf("Work group size: %d\n", get_local_size(0); // perform this part only once i.e. for Work Item 0
+
+	int localId = get_local_id(0);
+
+	printf("Global ID = %d, local ID = %d\n", id, localId); // do it for each work item
+	*/
+
 	C[id] = A[id] + B[id];
 } // end function add
 
-// a simple OpenCL kernel which multiply two vectors A and B together into a third vector C
-kernel void mult(global const int* A, global const int* B, global int* C)
+// a simple 2D kernel
+kernel void add2D(global const int* A, global const int* B, global int* C)
 {
-	int id = get_global_id(0);
-	C[id] = A[id] * B[id];
-} // end function mult
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int width = get_global_size(0);
+	int height = get_global_size(1);
+	int id = x + y*width;
 
-// a simple OpenCL kernel which multiply two vectors A and B and then add to B to get a third vector C
-kernel void multadd(global const int* A, global const int* B, global int* C)
-{
-	int id = get_global_id(0);
-	C[id] = A[id] * B[id] + B[id];
-} // end function multadd
+	printf("id = %d x = %d y = %d w = %d h = %d\n", id, x, y, width, height);
+
+	C[id]= A[id]+ B[id];
+} // end function add2D

@@ -72,6 +72,8 @@ int main(int argc, char **argv)
 		 * allocate 10 elements with an initial value 1 - their sum is 10 so it should be easy to check the results
 		 */
 		std::vector<mytype> A(10, 1);
+		// std::vector<mytype> A = { 6, 6, 6, 9, 9, 9, 9, 8, 5, 3}; // uncomment this in the introduction of Section 2.1
+		// std::vector<mytype> A = { 6, 6, 6, 9, 9, 9, 9, 8, 5, 2333}; // uncomment this in Task4U-1 of Section 2.1
 
 		/*
 		 * the following part adjusts the length of the input vector so it can be run for a specific workgroup size;
@@ -95,12 +97,13 @@ int main(int argc, char **argv)
 		size_t nr_groups = input_elements / local_size;
 
 		// host - output
-		//std::vector<mytype> B(input_elements);
+		std::vector<mytype> B(input_elements);
 		/*
-		 * this is suggested for Task4U-2 in Section 1.2 because we are using only a single element in the output vector;
+		 * this is suggested for Task4U-2 and Task4U-3 in Section 1.2 because we are using only a single element in the output vector;
 		 * adjust the length to 1 so that there will be more memory available on a device for the input vector - it is important to perform reduce on larger datasets
 		 */
-		std::vector<mytype> B(1);
+		// std::vector<mytype> B(1);
+		// std::vector<mytype> B(10); // uncomment this in Section 2.1
 
 		size_t output_size = B.size() * sizeof(mytype); // size in bytes
 
@@ -114,14 +117,21 @@ int main(int argc, char **argv)
 		queue.enqueueFillBuffer(buffer_B, 0, 0, output_size); // zero B buffer on device memory
 
 		// 4.2 Setup and execute all kernels (i.e. device code)
-		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_1"); // fixed 4-step reduce (Task4U-1 in Section 1.1)
-		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_2"); // flexible step reduce (Task4U-2 in Section 1.1)
-		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_3"); // reduce using local memory to be faster compared to operate directly on global memory (Task4U-1 in Section 1.2)
-		cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_4"); // reduce using local memory + accumulation of local sums into a single location (Task4U-2 in Section 1.2)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_1"); // fixed 4-step reduce using interleaved addressing (Task4U-1 of Section 1.1)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_2"); // flexible step reduce using interleaved addressing (Task4U-2 of Section 1.1)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_3"); // reduce using local memory and interleaved addressing to be faster compared to operate directly on global memory (Task4U-1 of Section 1.2)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_4"); // reduce using local memory + accumulation of local sums into a single location and interleaved addressing (Task4U-2 of Section 1.2)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_5"); // reduce using local memory + accumulation of local sums into a single location and sequential addressing (Task4U-3 of Section 1.2)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "hist_1"); // a very simple histogram implementation (the introduction of Section 2.1)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "hist_2"); // a simple histogram implementation considering the number of bins (Task4U-1 of Section 2.1)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "scan_hs"); // Hillis-Steele basic inclusive scan (the introduction of Section 3)
+		cl::Kernel kernel_1 = cl::Kernel(program, "scan_add"); // a double-buffered version of the Hillis-Steele inclusive scan (Task4U-1 of Section 3)
 
 		kernel_1.setArg(0, buffer_A);
 		kernel_1.setArg(1, buffer_B);
-		kernel_1.setArg(2, cl::Local(local_size * sizeof(mytype))); // local memory size (uncomment this in Section 1.2)
+		kernel_1.setArg(2, cl::Local(local_size * sizeof(mytype))); // local memory size (uncomment this in Section 1.2 and Task 4U-1 of Section 3)
+		// kernel_1.setArg(2, (int)B.size()); // the number of bins (uncomment this in Task4U-1 of Section 2.1)
+		kernel_1.setArg(3, cl::Local(local_size * sizeof(mytype))); // local memory size (uncomment this in Task4U-1 of Section 3)
 
 		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_elements), cl::NDRange(local_size)); // call all kernels in a sequence
 
