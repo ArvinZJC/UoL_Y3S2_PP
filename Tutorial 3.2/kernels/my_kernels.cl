@@ -1,6 +1,7 @@
 /*
  * a double-buffered version of the Hillis-Steele inclusive scan;
- * require 2 additional input arguments which correspond to 2 local buffers
+ * require 2 additional input arguments which correspond to 2 local buffers;
+ * allow only for calculating partial reductions in a single work group separately
  */
 kernel void scan_add(__global const int* A, global int* B, local int* scratch_1, local int* scratch_2)
 {
@@ -32,46 +33,11 @@ kernel void scan_add(__global const int* A, global int* B, local int* scratch_1,
 	B[id] = scratch_1[lid]; // copy the cache to output array
 } // end function scan_add
 
-// Blelloch basic exclusive scan
-kernel void scan_bl(global int* A)
-{
-	int id = get_global_id(0);
-	int N = get_global_size(0);
-	int t;
-
-	// up-sweep
-	for (int stride = 1; stride < N; stride *= 2)
-	{
-		if (((id + 1) % (stride*2)) == 0)
-			A[id] += A[id - stride];
-
-		barrier(CLK_GLOBAL_MEM_FENCE); // sync the step
-	} // end for
-
-	//down-sweep
-	if (id == 0)
-		A[N-1] = 0;// exclusive scan
-
-	barrier(CLK_GLOBAL_MEM_FENCE); // sync the step
-
-	for (int stride = N/2; stride > 0; stride /= 2)
-	{
-		if (((id + 1) % (stride*2)) == 0)
-		{
-			t = A[id];
-			A[id] += A[id - stride]; // reduce 
-			A[id - stride] = t;		 // move
-		} // end if
-
-		barrier(CLK_GLOBAL_MEM_FENCE); // sync the step
-	} // end for
-} // end function scan_bl
-
 // calculate the block sums
 kernel void block_sum(global const int* A, global int* B, int local_size)
 {
 	int id = get_global_id(0);
-	B[id] = A[(id+1)*local_size-1];
+	B[id] = A[(id + 1) * local_size - 1];
 } // end function block_sum
 
 // simple exclusive serial scan based on atomic operations - sufficient for small number of elements
@@ -80,7 +46,7 @@ kernel void scan_add_atomic(global int* A, global int* B)
 	int id = get_global_id(0);
 	int N = get_global_size(0);
 
-	for (int i = id+1; i < N; i++)
+	for (int i = id + 1; i < N; i++)
 		atomic_add(&B[i], A[id]);
 } // end function scan_add_atomic
 

@@ -67,17 +67,13 @@ int main(int argc, char **argv)
 		typedef int mytype;
 
 		// Part 3 - memory allocation
-		/*
-		 * allocate 10 elements with an initial value 1 - their sum is 10 so it should be easy to check the results;
-		 * a large size (1000) has been tested and the program worked well (adjust output to the console accordingly to save space)
-		 */
-		std::vector<mytype> A(10, 1);
+		std::vector<mytype> A(8, 1); // allocate 8 elements with an initial value 1
 
 		/*
 		 * the following part adjusts the length of the input vector so it can be run for a specific workgroup size;
 		 * if the total input length is divisible by the workgroup size, this makes the code more efficient
 		 */
-		size_t local_size = 5;
+		size_t local_size = 8;
 		size_t padding_size = A.size() % local_size;
 
 		/*
@@ -94,72 +90,25 @@ int main(int argc, char **argv)
 		size_t A_size = A.size() * sizeof(mytype); // size in bytes
 		size_t nr_groups = A_elements / local_size;
 
-		std::vector<mytype> B(A_elements);
-
-		size_t B_size = B.size() * sizeof(mytype); // size in bytes
-
-		std::vector<mytype> C(nr_groups, 0); // create a separate vector whose length is equal to the number of work groups to store the block sums
-
-		size_t C_size = C.size() * sizeof(mytype); // size in bytes
-
-		std::vector<mytype> D(nr_groups, 0); // create a separate vector whose length is equal to the number of work groups to perform an exclusive scan on the block sums
-
-		size_t D_size = D.size() * sizeof(mytype); // size in bytes
-
-		// device - buffers
-		cl::Buffer buffer_A(context, CL_MEM_READ_ONLY, A_size);
-		cl::Buffer buffer_B(context, CL_MEM_READ_WRITE, B_size);
-		cl::Buffer buffer_C(context, CL_MEM_READ_WRITE, C_size);
-		cl::Buffer buffer_D(context, CL_MEM_READ_WRITE, D_size);
+		cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, A_size); // device - buffers
 
 		// Part 4 - device operations
 		// 4.1 copy array A to and initialise other arrays on device memory
 		queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, A_size, &A[0]);
-		queue.enqueueFillBuffer(buffer_B, 0, 0, B_size); // zero B buffer on device memory
-		queue.enqueueFillBuffer(buffer_C, 0, 0, C_size); // zero C buffer on device memory
-		queue.enqueueFillBuffer(buffer_D, 0, 0, D_size); // zero D buffer on device memory
 
 		// 4.2 Setup and execute all kernels (i.e. device code)
-		// take steps to extend the basic scan to enable a full scan operation on large vectors (Task4U-2 of Section 3)
-		cl::Kernel kernel_1 = cl::Kernel(program, "scan_add"); // a double-buffered version of the Hillis-Steele inclusive scan (Step 1)
-		cl::Kernel kernel_2 = cl::Kernel(program, "block_sum"); // calculate the block sums (Step 2)
-		cl::Kernel kernel_3 = cl::Kernel(program, "scan_add_atomic"); // simple exclusive serial scan based on atomic operations (Step 3)
-		cl::Kernel kernel_4 = cl::Kernel(program, "scan_add_adjust"); // adjust the values stored in partial scans by adding block sums to corresponding blocks (Step 4)
+		cl::Kernel kernel_1 = cl::Kernel(program, "scan_bl"); // Blelloch basic exclusive scan
 
 		kernel_1.setArg(0, buffer_A);
-		kernel_1.setArg(1, buffer_B);
-		kernel_1.setArg(2, cl::Local(local_size * sizeof(mytype))); // local memory size
-		kernel_1.setArg(3, cl::Local(local_size * sizeof(mytype)));
 
-		kernel_2.setArg(0, buffer_B);
-		kernel_2.setArg(1, buffer_C);
-		kernel_2.setArg(2, (int)local_size);
-
-		kernel_3.setArg(0, buffer_C);
-		kernel_3.setArg(1, buffer_D);
-
-		kernel_4.setArg(0, buffer_B);
-		kernel_4.setArg(1, buffer_D);
-
-		// call all kernels in a sequence
-		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size));
-
-		queue.enqueueReadBuffer(buffer_B, CL_TRUE, 0, B_size, &B[0]); // record Vector B after Step 1
-		std::cout << "A = " << A << std::endl;
-		std::cout << "B = " << B << std::endl;
-
-		queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size));
-		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size));
-		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size));
+		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size)); // call all kernels in a sequence
 
 		// 4.3 Copy the result from device to host
-		queue.enqueueReadBuffer(buffer_B, CL_TRUE, 0, B_size, &B[0]);
-		queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, C_size, &C[0]);
-		queue.enqueueReadBuffer(buffer_D, CL_TRUE, 0, D_size, &D[0]);
+		std::cout << "A = " << A << std::endl;
 
-		std::cout << "C = " << C << std::endl;
-		std::cout << "D = " << D << std::endl;
-		std::cout << "B (final) = " << B << std::endl;
+		queue.enqueueReadBuffer(buffer_A, CL_TRUE, 0, A_size, &A[0]);
+
+		std::cout << "A (final) = " << A << std::endl;
 	}
 	catch (cl::Error err)
 	{

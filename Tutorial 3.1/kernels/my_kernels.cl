@@ -167,13 +167,13 @@ kernel void hist_2(global const int* A, global int* H, int nr_bins)
 
 /*
  * Hillis-Steele basic inclusive scan;
- * require additional buffer B to avoid data overwriting
+ * require additional global buffer B to avoid data overwriting
  */
 kernel void scan_hs(global int* A, global int* B)
 {
 	int id = get_global_id(0);
 	int N = get_global_size(0);
-	global int* C;
+	global int* C; // used for buffer swap
 
 	for (int stride = 1; stride < N; stride *= 2)
 	{
@@ -195,7 +195,8 @@ kernel void scan_hs(global int* A, global int* B)
 
 /*
  * a double-buffered version of the Hillis-Steele inclusive scan;
- * require 2 additional input arguments which correspond to 2 local buffers
+ * require 2 additional input arguments which correspond to 2 local buffers;
+ * allow only for calculating partial reductions in a single work group separately
  */
 kernel void scan_add(__global const int* A, global int* B, local int* scratch_1, local int* scratch_2)
 {
