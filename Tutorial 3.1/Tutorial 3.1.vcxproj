@@ -185,13 +185,13 @@
     <Intel_OpenCL_Build_Rules Include="my_kernels.cl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Tutorial 3.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="kernels\my_kernels.cl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Tutorial 3.1.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
