@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 		// 4.1 Copy arrays A and B to device memory (comment the following 2 lines in Section 2.7)
 		// queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, vector_size, &A[0]);
 		// queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, vector_size, &B[0]);
-		// add additional events to measure the upload time for input vectors A and B
+		// add additional events to measure the upload time of input vectors A and B
 		cl::Event A_event, B_event;
 		queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, vector_size, &A[0], NULL, &A_event);
 		queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, vector_size, &B[0], NULL, &B_event);
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 
 		// 4.3 Copy the result from device to host (comment the following 1 line in Section 2.7)
 		// queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0]);
-		// add an additional event to measure the download time for the output vector C
+		// add an additional event to measure the download time of the output vector C
 		cl::Event C_event;
 		queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0], NULL, &C_event);
 
