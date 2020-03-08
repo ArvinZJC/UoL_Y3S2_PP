@@ -123,10 +123,10 @@ int main(int argc, char **argv)
 		// std::cout << "A = " << A << std::endl;
 		// std::cout << "B = " << B << std::endl;
 		// std::cout << "C = " << C << std::endl;
-		cl_ulong uploadTime_A = A_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - A_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-		cl_ulong uploadTime_B = B_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - B_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-		cl_ulong downloadTime_C = C_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - C_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-		cl_ulong kernelExecutionTime = prof_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+		cl_ulong uploadTime_A = A_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - A_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(),
+			uploadTime_B = B_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - B_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(),
+			downloadTime_C = C_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - C_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(),
+			kernelExecutionTime = prof_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
 
 		std::cout << "Total memory transfer time (unit: ns): " << uploadTime_A + uploadTime_B + downloadTime_C << std::endl; // display the total memory transfer time in nanoseconds (Section 2.7)
 		std::cout << "Upload time for input vectors (unit: ns): A " << uploadTime_A << ", B " << uploadTime_B << std::endl; // display the upload time for input vectors A and B in nanoseconds (Section 2.7)
