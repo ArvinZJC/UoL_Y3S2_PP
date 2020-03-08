@@ -11,8 +11,12 @@ void print_help()
 	std::cerr << "Application usage:" << std::endl;
 	std::cerr << "  -p : select platform " << std::endl;
 	std::cerr << "  -d : select device" << std::endl;
-	std::cerr << "  -l : list all platforms and devices" << std::endl;
-	std::cerr << "  -f : filename of input image (default: test.ppm; please enter the filename only, but put images under the folder \"images\")" << std::endl;
+	std::cerr << "  -l : list all platforms and devices, and run on the first device of the first platform" << std::endl;
+	std::cerr << "  -f : specify input image file" << std::endl;
+	std::cerr << "       ATTENTION: 1. \"test\" referring to \"test.ppm\" is default" << std::endl;
+	std::cerr << "                  2. Only a PPM image file is accepted" << std::endl;
+	std::cerr << "                  3. When using this option, please only enter the filename without the extension (i.e. test)" << std::endl;
+	std::cerr << "                  4. The specified image should be put under the folder \"images\"" << std::endl;
 	std::cerr << "  -h : print this message" << std::endl;
 } // end function print_help
 

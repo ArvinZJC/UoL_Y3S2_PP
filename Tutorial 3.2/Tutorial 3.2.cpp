@@ -8,7 +8,7 @@ void print_help()
 	std::cerr << "Application usage:" << std::endl;
 	std::cerr << "  -p : select platform " << std::endl;
 	std::cerr << "  -d : select device" << std::endl;
-	std::cerr << "  -l : list all platforms and devices" << std::endl;
+	std::cerr << "  -l : list all platforms and devices, and run on the first device of the first platform" << std::endl;
 	std::cerr << "  -h : print this message" << std::endl;
 } // end function print_help
 
