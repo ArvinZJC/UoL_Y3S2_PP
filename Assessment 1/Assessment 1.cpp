@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 
 		std::cout << "Runing on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl; // display the selected device
 
-		cl::CommandQueue queue(context); // create a queue to which we will push commands for the device
+		cl::CommandQueue queue(context, CL_QUEUE_PROFILING_ENABLE); // create a queue to which we will push commands for the device and enable profiling for the queue
 
 		// 3.2 Load & build the device code
 		cl::Program::Sources sources;
@@ -109,11 +109,13 @@ int main(int argc, char **argv)
 		cl::Buffer buffer_output_image(context, CL_MEM_READ_WRITE, input_image_size); // its size should be the same as that of the input image
 
 		// 5.1 Copy the image and vector mask to and initialise other arrays on device memory
-		queue.enqueueWriteBuffer(buffer_input_image, CL_TRUE, 0, input_image_size, &input_image.data()[0]);
-		queue.enqueueWriteBuffer(buffer_mask, CL_TRUE, 0, mask_size, &mask[0]);
-		queue.enqueueFillBuffer(buffer_H, 0, 0, H_size); // zero H buffer on device memory
-		queue.enqueueFillBuffer(buffer_CH, 0, 0, CH_size); // zero CH buffer on device memory
-		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size); // zero LUT buffer on device memory
+		cl::Event input_image_event, mask_event, H_input_event, CH_input_event, LUT_input_event; // add additional events to measure the upload time of each input vector
+
+		queue.enqueueWriteBuffer(buffer_input_image, CL_TRUE, 0, input_image_size, &input_image.data()[0], NULL, &input_image_event);
+		queue.enqueueWriteBuffer(buffer_mask, CL_TRUE, 0, mask_size, &mask[0], NULL, &mask_event);
+		queue.enqueueFillBuffer(buffer_H, 0, 0, H_size, NULL, &H_input_event); // zero H buffer on device memory
+		queue.enqueueFillBuffer(buffer_CH, 0, 0, CH_size, NULL, &CH_input_event); // zero CH buffer on device memory
+		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
 		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram");
@@ -136,24 +138,45 @@ int main(int argc, char **argv)
 		kernel_4.setArg(1, buffer_LUT);
 		kernel_4.setArg(2, buffer_output_image);
 
-		// queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(input_image.width(), input_image.height(), input_image.spectrum()), cl::NullRange);
-		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_image_size), cl::NullRange);
-		queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange);
-		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange);
-		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(input_image_size), cl::NullRange);
+		cl::Event kernel_1_event, kernel_2_event, kernel_3_event, kernel_4_event; // add additional events to measure the execution time of each kernel
 
-		vector<unsigned char> output_buffer(input_image_size);
+		// queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(input_image.width(), input_image.height(), input_image.spectrum()), cl::NullRange);
+		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_image_size), cl::NullRange, NULL, &kernel_1_event);
+		queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel_2_event);
+		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel_3_event);
+		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(input_image_size), cl::NullRange, NULL, &kernel_4_event);
 
 		// 5.3 Copy the result from device to host
-		queue.enqueueReadBuffer(buffer_H, CL_TRUE, 0, H_size, &H[0]);
-		queue.enqueueReadBuffer(buffer_CH, CL_TRUE, 0, CH_size, &CH[0]);
-		queue.enqueueReadBuffer(buffer_LUT, CL_TRUE, 0, LUT_size, &LUT[0]);
+		vector<unsigned char> output_buffer(input_image_size);
+		cl::Event H_output_event, CH_output_event, LUT_output_event, output_image_event; // add additional events to measure the download time of each output vector
 
+		queue.enqueueReadBuffer(buffer_H, CL_TRUE, 0, H_size, &H[0], NULL, &H_output_event);
+		queue.enqueueReadBuffer(buffer_CH, CL_TRUE, 0, CH_size, &CH[0], NULL, &CH_output_event);
+		queue.enqueueReadBuffer(buffer_LUT, CL_TRUE, 0, LUT_size, &LUT[0], NULL, &LUT_output_event);
+		queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer.size(), &output_buffer.data()[0], NULL, &output_image_event);
+
+		// 5.4 Process and display results
 		// std::cout << "H = " << H << std::endl; // uncomment when testing
 		// std::cout << "CH = " << CH << std::endl; // uncomment when testing
 		// std::cout << "LUT = " << LUT << std::endl; // uncomment when testing
 
-		queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer.size(), &output_buffer.data()[0]);
+		cl_ulong total_upload_time = input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ mask_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - mask_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total upload time of input vectors
+		cl_ulong total_kernel_time = kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ kernel_3_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_3_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ kernel_4_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_4_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total execution time of kernels
+		cl_ulong total_download_time = H_output_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_output_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ CH_output_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - CH_output_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ LUT_output_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - LUT_output_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total download time of output vectors
+
+		std::cout << "Memory transfer time: " << total_upload_time << " ns" << std::endl;
+		std::cout << "Kernel execution time: " << total_kernel_time << " ns" << std::endl;
+		std::cout << "Program execution time: " << total_upload_time + total_kernel_time + total_download_time << " ns" << std::endl;
 
 		CImg<unsigned char> output_image(output_buffer.data(), input_image.width(), input_image.height(), input_image.depth(), input_image.spectrum());
 		CImgDisplay output_image_display(output_image, "Output image");
