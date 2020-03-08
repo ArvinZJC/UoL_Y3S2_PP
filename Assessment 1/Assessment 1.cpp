@@ -118,10 +118,10 @@ int main(int argc, char **argv)
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
-		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram");
-		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram");
-		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut");
-		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image");
+		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram array with a specified number of bins
+		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram array
+		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram array as an LUT
+		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image array according to the LUT
 
 		kernel_1.setArg(0, buffer_input_image);
 		kernel_1.setArg(1, buffer_H);
