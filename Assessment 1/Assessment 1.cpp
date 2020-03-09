@@ -93,7 +93,12 @@ int main(int argc, char **argv)
 		size_t CH_elements = CH.size(); // number of elements
 		size_t CH_size = CH_elements * sizeof(int); // size in bytes
 
-		std::vector<float> mask(CH_elements, 255.0f / (int)(input_image_size / input_image.spectrum())); // vector mask for normalising a cumulative histogram
+		/*
+		 * vector mask for normalising a cumulative histogram;
+		 * all the elements of the mask are the result of "255 / total pixels"
+		 */
+		std::vector<float> mask(CH_elements, 255.0f / (int)(input_image_size / input_image.spectrum()));
+
 		size_t mask_size = mask.size() * sizeof(float); // size in bytes
 		
 		std::vector<int> LUT(CH_elements, 0); // vector LUT for a normalised cumulative histogram which is used as a look-up table (LUT)
