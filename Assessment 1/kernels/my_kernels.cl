@@ -24,10 +24,10 @@ kernel void get_cumulative_histogram(global int* H, global int* CH)
 } // end function get_cumulative_histogram
 
 // get a normalised cumulative histogram array as a look-up table (LUT)
-kernel void get_lut(global const int* CH, global float* mask, global int* LUT)
+kernel void get_lut(global const int* CH, global int* LUT, const float mask)
 {
 	int id = get_global_id(0);
-	LUT[id] = CH[id] * mask[id];
+	LUT[id] = CH[id] * mask;
 } // end function get_lut
 
 // get the output image array according to the LUT

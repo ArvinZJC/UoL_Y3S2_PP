@@ -92,14 +92,6 @@ int main(int argc, char **argv)
 		std::vector<int> CH(H_elements, 0); // vector CH for a cumulative histogram
 		size_t CH_elements = CH.size(); // number of elements
 		size_t CH_size = CH_elements * sizeof(int); // size in bytes
-
-		/*
-		 * vector mask for normalising a cumulative histogram;
-		 * all the elements of the mask are the result of "255 / total pixels"
-		 */
-		std::vector<float> mask(CH_elements, 255.0f / (int)(input_image_size / input_image.spectrum()));
-
-		size_t mask_size = mask.size() * sizeof(float); // size in bytes
 		
 		std::vector<int> LUT(CH_elements, 0); // vector LUT for a normalised cumulative histogram which is used as a look-up table (LUT)
 		size_t LUT_size = LUT.size() * sizeof(int); // size in bytes
@@ -109,15 +101,13 @@ int main(int argc, char **argv)
 		cl::Buffer buffer_input_image(context, CL_MEM_READ_ONLY, input_image_size);
 		cl::Buffer buffer_H(context, CL_MEM_READ_WRITE, H_size);
 		cl::Buffer buffer_CH(context, CL_MEM_READ_WRITE, CH_size);
-		cl::Buffer buffer_mask(context, CL_MEM_READ_ONLY, mask_size);
 		cl::Buffer buffer_LUT(context, CL_MEM_READ_WRITE, LUT_size);
 		cl::Buffer buffer_output_image(context, CL_MEM_READ_WRITE, input_image_size); // its size should be the same as that of the input image
 
-		// 5.1 Copy the image and vector mask to and initialise other arrays on device memory
-		cl::Event input_image_event, mask_event, H_input_event, CH_input_event, LUT_input_event; // add additional events to measure the upload time of each input vector
+		// 5.1 Copy the image to and initialise other arrays on device memory
+		cl::Event input_image_event, H_input_event, CH_input_event, LUT_input_event; // add additional events to measure the upload time of each input vector
 
 		queue.enqueueWriteBuffer(buffer_input_image, CL_TRUE, 0, input_image_size, &input_image.data()[0], NULL, &input_image_event);
-		queue.enqueueWriteBuffer(buffer_mask, CL_TRUE, 0, mask_size, &mask[0], NULL, &mask_event);
 		queue.enqueueFillBuffer(buffer_H, 0, 0, H_size, NULL, &H_input_event); // zero H buffer on device memory
 		queue.enqueueFillBuffer(buffer_CH, 0, 0, CH_size, NULL, &CH_input_event); // zero CH buffer on device memory
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
@@ -136,9 +126,9 @@ int main(int argc, char **argv)
 		kernel_2.setArg(1, buffer_CH);
 
 		kernel_3.setArg(0, buffer_CH);
-		kernel_3.setArg(1, buffer_mask);
-		kernel_3.setArg(2, buffer_LUT);
-
+		kernel_3.setArg(1, buffer_LUT);
+		kernel_3.setArg(2, 255.0f / (int)(input_image_size / input_image.spectrum())); // the mask for normalising a cumulative histogram is the result of "255 / total pixels"
+		
 		kernel_4.setArg(0, buffer_input_image);
 		kernel_4.setArg(1, buffer_LUT);
 		kernel_4.setArg(2, buffer_output_image);
@@ -165,7 +155,6 @@ int main(int argc, char **argv)
 		// std::cout << "LUT = " << LUT << std::endl; // uncomment when testing
 
 		cl_ulong total_upload_time = input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
-			+ mask_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - mask_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total upload time of input vectors
