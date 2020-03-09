@@ -20,11 +20,11 @@ kernel void get_cumulative_histogram(global int* H, global int* CH)
 
 	// simple exclusive serial scan based on atomic operations - sufficient for small number of elements
 	for (int i = id + 1; i < N; i++)
-		atomic_add(&CH[i], H[id]);
+		atomic_add(&CH[i], H[id] / 3);
 } // end function get_cumulative_histogram
 
 // get a normalised cumulative histogram array as a look-up table (LUT)
-kernel void get_lut(global const int* CH, global double* mask, global int* LUT)
+kernel void get_lut(global const int* CH, global float* mask, global int* LUT)
 {
 	int id = get_global_id(0);
 	LUT[id] = CH[id] * mask[id];

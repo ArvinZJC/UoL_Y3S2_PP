@@ -93,8 +93,8 @@ int main(int argc, char **argv)
 		size_t CH_elements = CH.size(); // number of elements
 		size_t CH_size = CH_elements * sizeof(int); // size in bytes
 
-		std::vector<double> mask(CH_elements, 255.0 / (int)input_image_size); // vector mask for normalising a cumulative histogram
-		size_t mask_size = mask.size() * sizeof(double); // size in bytes
+		std::vector<float> mask(CH_elements, 255.0f / (int)(input_image_size / input_image.spectrum())); // vector mask for normalising a cumulative histogram
+		size_t mask_size = mask.size() * sizeof(float); // size in bytes
 		
 		std::vector<int> LUT(CH_elements, 0); // vector LUT for a normalised cumulative histogram which is used as a look-up table (LUT)
 		size_t LUT_size = LUT.size() * sizeof(int); // size in bytes
@@ -140,7 +140,6 @@ int main(int argc, char **argv)
 
 		cl::Event kernel_1_event, kernel_2_event, kernel_3_event, kernel_4_event; // add additional events to measure the execution time of each kernel
 
-		// queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(input_image.width(), input_image.height(), input_image.spectrum()), cl::NullRange);
 		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_image_size), cl::NullRange, NULL, &kernel_1_event);
 		queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel_2_event);
 		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel_3_event);
