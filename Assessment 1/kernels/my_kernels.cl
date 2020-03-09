@@ -1,5 +1,5 @@
 // get a histogram array with a specified number of bins
-kernel void get_histogram(global const uchar* image, global int* H, int nr_bins)
+kernel void get_histogram(global const uchar* image, global int* H, const int nr_bins)
 {
 	int id = get_global_id(0);
 	int bin_index = image[id]; // take value as a bin index
