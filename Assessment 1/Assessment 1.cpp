@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 		} // end try...catch
 
 		// Part 4 - memory allocation
-		std::vector<int> H(256, 0); // vector H for a histogram
+		std::vector<int> H(256, 0); // vector H for a histogram // 16-bit: 65536
 		size_t H_elements = H.size(); // number of elements
 		size_t H_size = H_elements * sizeof(int); // size in bytes
 
@@ -113,14 +113,17 @@ int main(int argc, char **argv)
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
-		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram array with a specified number of bins
-		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram array
-		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram array as an LUT
-		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image array according to the LUT
+		// cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins (global memory version)
+		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
+		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
+		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
+		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
 
 		kernel_1.setArg(0, buffer_input_image);
 		kernel_1.setArg(1, buffer_H);
-		kernel_1.setArg(2, (int)H_elements);
+		// kernel_1.setArg(2, (int)H_elements);
+		kernel_1.setArg(2, cl::Local(H_size));
+		kernel_1.setArg(3, (int)H_elements);
 
 		kernel_2.setArg(0, buffer_H);
 		kernel_2.setArg(1, buffer_CH);
@@ -150,9 +153,9 @@ int main(int argc, char **argv)
 		queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer.size(), &output_buffer.data()[0], NULL, &output_image_event);
 
 		// 5.4 Process and display results
-		// std::cout << "H = " << H << std::endl; // uncomment when testing
-		// std::cout << "CH = " << CH << std::endl; // uncomment when testing
-		// std::cout << "LUT = " << LUT << std::endl; // uncomment when testing
+		std::cout << "H = " << H << std::endl; // uncomment when testing
+		std::cout << "CH = " << CH << std::endl; // uncomment when testing
+		std::cout << "LUT = " << LUT << std::endl; // uncomment when testing
 
 		cl_ulong total_upload_time = input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
