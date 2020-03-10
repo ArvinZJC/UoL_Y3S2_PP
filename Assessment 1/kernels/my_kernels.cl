@@ -1,10 +1,10 @@
 // get a histogram array with a specified number of bins
-kernel void get_histogram(global const uchar* image, global int* H, const int nr_bins)
+kernel void get_histogram(global const uchar* image, global int* H, const int bin_count)
 {
 	int id = get_global_id(0);
 	int bin_index = image[id]; // take value as a bin index
 	
-	if (id < nr_bins)
+	if (id < bin_count)
 		H[id] = 0;
 
 	barrier(CLK_LOCAL_MEM_FENCE);
