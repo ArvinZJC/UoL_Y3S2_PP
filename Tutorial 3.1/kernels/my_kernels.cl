@@ -160,8 +160,6 @@ kernel void hist_2(global const int* A, global int* H, int nr_bins)
 	if (id < nr_bins)
 		H[id] = 0;
 
-	barrier(CLK_LOCAL_MEM_FENCE);
-
 	atomic_inc(&H[bin_index]);
 } // end function hist_2
 
