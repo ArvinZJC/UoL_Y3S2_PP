@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 	// detect any potential exceptions
 	try
 	{
+		// Part 2 - image and mask info loading
 		CImg<unsigned char> image_input(image_path.c_str());
 		CImgDisplay disp_input(image_input, "input");
 
