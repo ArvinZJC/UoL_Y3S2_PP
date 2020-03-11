@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 		
 		/*
 		 * display the input image;
-		 * resize to provide a better view when necessary
+		 * resize to provide a better view when necessary (this does not affect the input image data read from the image)
 		 */
 		CImgDisplay input_image_display(CImg<unsigned char>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image");
 		
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
 		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins (global memory version)
-		// cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
+		//cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
 		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
 		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
 		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
@@ -136,8 +136,8 @@ int main(int argc, char **argv)
 		kernel_1.setArg(0, buffer_input_image);
 		kernel_1.setArg(1, buffer_H);
 		kernel_1.setArg(2, bin_count);
-		// kernel_1.setArg(2, cl::Local(256 * sizeof(int))); // TODO: local memory size for either 256 or 65536 bin numbers
-		// kernel_1.setArg(3, bin_count);
+		//kernel_1.setArg(2, cl::Local(256 * sizeof(int))); // TODO: local memory size for either 256 or 65536 bin numbers
+		//kernel_1.setArg(3, bin_count);
 
 		kernel_2.setArg(0, buffer_H);
 		kernel_2.setArg(1, buffer_CH);
@@ -190,22 +190,22 @@ int main(int argc, char **argv)
 			+ output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total download time of output vectors
 
 		std::cout << "Memory transfer time: " << total_upload_time << " ns" << std::endl;
-		std::cout << "Kernel execution time: " << total_kernel_time << " ns" << std::endl;
+		std::cout << "Kernel execution time: " << total_kernel_time << " ns" << std::endl; // TODO: in detail and comparison
 		std::cout << "Program execution time: " << total_upload_time + total_kernel_time + total_download_time << " ns" << std::endl;
 
 		CImg<unsigned short> output_image(output_buffer.data(), input_image_width, input_image_height, input_image.depth(), input_image.spectrum());
 
 		/*
 		 * display the output image;
-		 * resize to provide a better view when necessary
+		 * resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
 		 */
 		CImgDisplay output_image_display(CImg<unsigned char>(output_image).resize((int)(input_image_width* scale), (int)(input_image_height* scale)), "Output image");
 		
 		while (!input_image_display.is_closed() && !output_image_display.is_closed()
 			&& !input_image_display.is_keyESC() && !output_image_display.is_keyESC())
 		{
-			input_image_display.wait();
-			output_image_display.wait();
+			input_image_display.wait(1);
+			output_image_display.wait(1);
 		} // end while
 	}
 	catch (const cl::Error& err)
