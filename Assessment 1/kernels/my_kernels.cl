@@ -17,12 +17,12 @@ kernel void get_histogram(global const ushort* image, global int* H, const int b
 // get a histogram with a specified number of bins (local memory version)
 kernel void get_histogram_pro(global const ushort* image, global int* H, local int* H_local, const int bin_count)
 {
-	int lid = get_local_id(0);
+	int local_id = get_local_id(0);
 	int id = get_global_id(0);
 
 	// initialise the local histogram to 0
-	if (lid < bin_count)
-		H_local[lid] = 0;
+	if (local_id < bin_count)
+		H_local[local_id] = 0;
 
 	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish the initialisation
 	
@@ -35,8 +35,8 @@ kernel void get_histogram_pro(global const ushort* image, global int* H, local i
 	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish computing the local histogram
 
 	// write the local histogram out to the global histogram
-	if (lid < bin_count)
-		atomic_add(&H[lid], H_local[lid]);
+	if (local_id < bin_count)
+		atomic_add(&H[local_id], H_local[local_id]);
 } // end function get_histogram_pro
 
 // get a cumulative histogram
@@ -49,7 +49,7 @@ kernel void get_cumulative_histogram(global int* H, global int* CH)
 	 * compute a cumulative histogram with an average histogram of the 3 colour channels' histograms;
 	 * an average histogram is used for enabling basic histogram equalisation on both monochrome and colour images
 	 */
-	for (int i = id + 1; i < size && id < size; i++)
+	for (int i = id + 1; i < size; i++)
 		atomic_add(&CH[i], H[id] / 3);
 } // end function get_cumulative_histogram
 
