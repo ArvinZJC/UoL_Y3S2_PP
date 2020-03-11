@@ -126,8 +126,8 @@ int main(int argc, char **argv)
 		while (!disp_input.is_closed() && !disp_output.is_closed()
 			&& !disp_input.is_keyESC() && !disp_output.is_keyESC())
 		{
-			disp_input.wait(1);
-			disp_output.wait(1);
+			disp_input.wait();
+			disp_output.wait();
 		} // end while
 	}
 	catch (const cl::Error& err)
