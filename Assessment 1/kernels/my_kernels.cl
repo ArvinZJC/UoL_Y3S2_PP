@@ -49,7 +49,7 @@ kernel void get_cumulative_histogram(global int* H, global int* CH)
 	 * compute a cumulative histogram with an average histogram of the 3 colour channels' histograms;
 	 * an average histogram is used for enabling basic histogram equalisation on both monochrome and colour images
 	 */
-	for (int i = id + 1; i < size; i++)
+	for (int i = id + 1; i < size && id < size; i++)
 		atomic_add(&CH[i], H[id] / 3);
 } // end function get_cumulative_histogram
 
