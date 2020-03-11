@@ -1,5 +1,5 @@
 // get a histogram with a specified number of bins (global memory version)
-kernel void get_histogram(global const uchar* image, global int* H, const int bin_count)
+kernel void get_histogram(global const ushort* image, global int* H, const int bin_count)
 {
 	int id = get_global_id(0);
 	
@@ -15,7 +15,7 @@ kernel void get_histogram(global const uchar* image, global int* H, const int bi
 } // end function get_histogram
 
 // get a histogram with a specified number of bins (local memory version)
-kernel void get_histogram_pro(global const uchar* image, global int* H, local int* H_local, const int bin_count)
+kernel void get_histogram_pro(global const ushort* image, global int* H, local int* H_local, const int bin_count)
 {
 	int lid = get_local_id(0);
 	int id = get_global_id(0);
@@ -61,7 +61,7 @@ kernel void get_lut(global const int* CH, global int* LUT, const float mask)
 } // end function get_lut
 
 // get the output image according to the LUT
-kernel void get_processed_image(global const uchar* input_image, global int* LUT, global uchar* output_image)
+kernel void get_processed_image(global const ushort* input_image, global int* LUT, global ushort* output_image)
 {
 	int id = get_global_id(0);
 	output_image[id] = LUT[input_image[id]];

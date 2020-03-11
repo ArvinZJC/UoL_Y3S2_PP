@@ -15,7 +15,7 @@ void PrintHelp()
 	std::cerr << "  -l : list all platforms and devices, and run on the first device of the first platform" << std::endl;
 	std::cerr << "  -f : specify input image file" << std::endl;
 	std::cerr << "       ATTENTION: 1. \"test\" referring to \"test.ppm\" is default" << std::endl;
-	std::cerr << "                  2. Only a PPM image file is accepted" << std::endl;
+	std::cerr << "                  2. Only a PPM image file (8-bit/16-bit) is accepted" << std::endl;
 	std::cerr << "                  3. When using this option, please only enter the filename without the extension (i.e. test)" << std::endl;
 	std::cerr << "                  4. The specified image should be put under the folder \"images\"" << std::endl;
 	std::cerr << "  -h : print this message" << std::endl;
@@ -52,10 +52,24 @@ int main(int argc, char **argv)
 	// detect any potential exceptions
 	try
 	{
-		CImg<unsigned char> input_image(image_path.c_str());
-		CImgDisplay input_image_display(input_image, "Input image");
-		size_t input_image_size = input_image.size();
+		CImg<unsigned short> input_image(image_path.c_str()); // read data from an RGB image (8-bit/16-bit)
+		size_t input_image_elements = input_image.size(); // number of elements
+		size_t input_image_size = input_image_elements * sizeof(unsigned short); // size in bytes
+		int input_image_width = input_image.width(), input_image_height = input_image.height();
+		int bin_count = input_image.max() <= 255 ? 256 : 65536; // bin numbers of an image (8-bit: 256, 16-bit: 65536)
+		float scale = 1.0f; // the scale when the image is large
 
+		if (input_image_width > 1024)
+			scale = 1000.0f / input_image_width;
+		else if (input_image_height > 768)
+			scale = 750.0f / input_image_height;
+		
+		/*
+		 * display the input image;
+		 * resize to provide a better view when necessary
+		 */
+		CImgDisplay input_image_display(CImg<unsigned char>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image");
+		
 		// Part 3 - host operations
 		// 3.1 Select computing devices
 		cl::Context context = GetContext(platform_id, device_id);
@@ -85,7 +99,7 @@ int main(int argc, char **argv)
 		} // end try...catch
 
 		// Part 4 - memory allocation
-		std::vector<int> H(256, 0); // vector H for a histogram // 16-bit: 65536
+		std::vector<int> H(bin_count, 0); // vector H for a histogram
 		size_t H_elements = H.size(); // number of elements
 		size_t H_size = H_elements * sizeof(int); // size in bytes
 
@@ -113,24 +127,29 @@ int main(int argc, char **argv)
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
-		// cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins (global memory version)
-		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
+		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins (global memory version)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
 		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
 		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
 		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
 
 		kernel_1.setArg(0, buffer_input_image);
 		kernel_1.setArg(1, buffer_H);
-		// kernel_1.setArg(2, (int)H_elements);
-		kernel_1.setArg(2, cl::Local(H_size));
-		kernel_1.setArg(3, (int)H_elements);
+		kernel_1.setArg(2, bin_count);
+		// kernel_1.setArg(2, cl::Local(256 * sizeof(int))); // TODO: local memory size for either 256 or 65536 bin numbers
+		// kernel_1.setArg(3, bin_count);
 
 		kernel_2.setArg(0, buffer_H);
 		kernel_2.setArg(1, buffer_CH);
 
 		kernel_3.setArg(0, buffer_CH);
 		kernel_3.setArg(1, buffer_LUT);
-		kernel_3.setArg(2, 255.0f / (int)(input_image_size / input_image.spectrum())); // the mask for normalising a cumulative histogram is the result of "255 / total pixels"
+
+		/*
+		 * the mask for normalising a cumulative histogram;
+		 * formula: max colour level (255/65535) ¡Â total pixels (width times height)
+		 */
+		kernel_3.setArg(2, (float)(bin_count - 1) / (int)(input_image_elements / input_image.spectrum()));
 		
 		kernel_4.setArg(0, buffer_input_image);
 		kernel_4.setArg(1, buffer_LUT);
@@ -138,24 +157,24 @@ int main(int argc, char **argv)
 
 		cl::Event kernel_1_event, kernel_2_event, kernel_3_event, kernel_4_event; // add additional events to measure the execution time of each kernel
 
-		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_image_size), cl::NullRange, NULL, &kernel_1_event);
+		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel_1_event);
 		queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel_2_event);
 		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel_3_event);
-		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(input_image_size), cl::NullRange, NULL, &kernel_4_event);
+		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel_4_event);
 
 		// 5.3 Copy the result from device to host
-		vector<unsigned char> output_buffer(input_image_size);
+		vector<unsigned short> output_buffer(input_image_elements);
 		cl::Event H_output_event, CH_output_event, LUT_output_event, output_image_event; // add additional events to measure the download time of each output vector
 
 		queue.enqueueReadBuffer(buffer_H, CL_TRUE, 0, H_size, &H[0], NULL, &H_output_event);
 		queue.enqueueReadBuffer(buffer_CH, CL_TRUE, 0, CH_size, &CH[0], NULL, &CH_output_event);
 		queue.enqueueReadBuffer(buffer_LUT, CL_TRUE, 0, LUT_size, &LUT[0], NULL, &LUT_output_event);
-		queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer.size(), &output_buffer.data()[0], NULL, &output_image_event);
+		queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer.size() * sizeof(unsigned short), &output_buffer.data()[0], NULL, &output_image_event);
 
 		// 5.4 Process and display results
-		std::cout << "H = " << H << std::endl; // uncomment when testing
-		std::cout << "CH = " << CH << std::endl; // uncomment when testing
-		std::cout << "LUT = " << LUT << std::endl; // uncomment when testing
+		// std::cout << "H = " << H << std::endl; // uncomment when testing
+		// std::cout << "CH = " << CH << std::endl; // uncomment when testing
+		// std::cout << "LUT = " << LUT << std::endl; // uncomment when testing
 
 		cl_ulong total_upload_time = input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
@@ -174,14 +193,19 @@ int main(int argc, char **argv)
 		std::cout << "Kernel execution time: " << total_kernel_time << " ns" << std::endl;
 		std::cout << "Program execution time: " << total_upload_time + total_kernel_time + total_download_time << " ns" << std::endl;
 
-		CImg<unsigned char> output_image(output_buffer.data(), input_image.width(), input_image.height(), input_image.depth(), input_image.spectrum());
-		CImgDisplay output_image_display(output_image, "Output image");
+		CImg<unsigned short> output_image(output_buffer.data(), input_image_width, input_image_height, input_image.depth(), input_image.spectrum());
 
+		/*
+		 * display the output image;
+		 * resize to provide a better view when necessary
+		 */
+		CImgDisplay output_image_display(CImg<unsigned char>(output_image).resize((int)(input_image_width* scale), (int)(input_image_height* scale)), "Output image");
+		
 		while (!input_image_display.is_closed() && !output_image_display.is_closed()
 			&& !input_image_display.is_keyESC() && !output_image_display.is_keyESC())
 		{
-			input_image_display.wait(1);
-			output_image_display.wait(1);
+			input_image_display.wait();
+			output_image_display.wait();
 		} // end while
 	}
 	catch (const cl::Error& err)
