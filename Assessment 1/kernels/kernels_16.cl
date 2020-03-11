@@ -1,10 +1,14 @@
+// a kernel file for processing a 16-bit image
+
+#define BIN_COUNT 65536
+
 // get a histogram with a specified number of bins (global memory version)
-kernel void get_histogram(global const ushort* image, global int* H, const int bin_count)
+kernel void get_histogram(global const ushort* image, global int* H)
 {
 	int id = get_global_id(0);
 	
 	// initialise the histogram to 0
-	if (id < bin_count)
+	if (id < BIN_COUNT)
 		H[id] = 0;
 
 	/*
@@ -15,28 +19,9 @@ kernel void get_histogram(global const ushort* image, global int* H, const int b
 } // end function get_histogram
 
 // get a histogram with a specified number of bins (local memory version)
-kernel void get_histogram_pro(global const ushort* image, global int* H, local int* H_local, const int bin_count)
+kernel void get_histogram_pro(global const ushort* image, global int* H, local int* H_local)
 {
-	int local_id = get_local_id(0);
-	int id = get_global_id(0);
-
-	// initialise the local histogram to 0
-	if (local_id < bin_count)
-		H_local[local_id] = 0;
-
-	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish the initialisation
-	
-	/*
-	 * compute the local histogram;
-	 * take a value from the input image as a bin index of the local histogram
-	 */
-	atomic_inc(&H_local[image[id]]);
-
-	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish computing the local histogram
-
-	// write the local histogram out to the global histogram
-	if (local_id < bin_count)
-		atomic_add(&H[local_id], H_local[local_id]);
+	// TODO
 } // end function get_histogram_pro
 
 // get a cumulative histogram

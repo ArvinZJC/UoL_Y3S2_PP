@@ -189,7 +189,8 @@ xcopy /s /i /y "images" "$(OutDir)images"</Command>
     <ClCompile Include="Assessment 1.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="kernels\my_kernels.cl" />
+    <None Include="kernels\kernels_16.cl" />
+    <None Include="kernels\kernels_8.cl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\CImg.h" />

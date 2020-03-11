@@ -12,16 +12,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="kernels\my_kernels.cl">
-      <Filter>kernels</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\include\Utils.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\include\CImg.h">
       <Filter>include</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="kernels\kernels_16.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="kernels\kernels_8.cl">
+      <Filter>kernels</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -52,23 +52,40 @@ int main(int argc, char **argv)
 	// detect any potential exceptions
 	try
 	{
-		CImg<unsigned short> input_image(image_path.c_str()); // read data from an RGB image (8-bit/16-bit)
+		// Part 2 - image info loading
+		CImg<unsigned short> input_image(image_path.c_str()); // read data from an RGB image file (8-bit/16-bit)
+		CImg<unsigned char> input_image_8; // "unsigned char" is sufficient for data from an 8-bit image if any
 		size_t input_image_elements = input_image.size(); // number of elements
 		size_t input_image_size = input_image_elements * sizeof(unsigned short); // size in bytes
 		int input_image_width = input_image.width(), input_image_height = input_image.height();
 		int bin_count = input_image.max() <= 255 ? 256 : 65536; // bin numbers of an image (8-bit: 256, 16-bit: 65536)
-		float scale = 1.0f; // the scale when the image is large
+		float scale = 1.0f; // the scale for displaying an image
 
 		if (input_image_width > 1024)
 			scale = 1000.0f / input_image_width;
 		else if (input_image_height > 768)
 			scale = 750.0f / input_image_height;
-		
-		/*
-		 * display the input image;
-		 * resize to provide a better view when necessary (this does not affect the input image data read from the image)
-		 */
-		CImgDisplay input_image_display(CImg<unsigned char>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image");
+
+		CImgDisplay input_image_display;
+
+		// use proper data type to save memory transfer time
+		if (bin_count == 256)
+		{
+			input_image_8.load(image_path.c_str());
+			input_image_size = input_image_elements * sizeof(unsigned char); // it is equal to "input_image_elements" because the value of "sizeof(unsigned char)" is 1
+
+			/*
+			 * display the input 16-bit image;
+			 * resize to provide a better view when necessary (this does not affect the input image data for processing)
+			 */
+			input_image_display.assign(CImg<unsigned char>(input_image_8).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (8-bit)");
+		} // end if
+		else
+			/*
+			 * display the input 16-bit image;
+			 * resize to provide a better view when necessary (this does not affect the input image data for processing)
+			 */
+			input_image_display.assign(CImg<unsigned char>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (16-bit)");
 		
 		// Part 3 - host operations
 		// 3.1 Select computing devices
@@ -80,8 +97,9 @@ int main(int argc, char **argv)
 
 		// 3.2 Load & build the device code
 		cl::Program::Sources sources;
+		string kernel_file_name = bin_count == 256 ? "kernels/kernels_8.cl" : "kernels/kernels_16.cl"; // select a kernel file according to the image type (8-bit/16-bit)
 
-		AddSources(sources, "kernels/my_kernels.cl");
+		AddSources(sources, kernel_file_name);
 
 		cl::Program program(context, sources);
 
@@ -121,23 +139,25 @@ int main(int argc, char **argv)
 		// 5.1 Copy the image to and initialise other arrays on device memory
 		cl::Event input_image_event, H_input_event, CH_input_event, LUT_input_event; // add additional events to measure the upload time of each input vector
 
-		queue.enqueueWriteBuffer(buffer_input_image, CL_TRUE, 0, input_image_size, &input_image.data()[0], NULL, &input_image_event);
+		if (bin_count == 256)
+			queue.enqueueWriteBuffer(buffer_input_image, CL_TRUE, 0, input_image_size, &input_image_8.data()[0], NULL, &input_image_event);
+		else
+			queue.enqueueWriteBuffer(buffer_input_image, CL_TRUE, 0, input_image_size, &input_image.data()[0], NULL, &input_image_event);
+
 		queue.enqueueFillBuffer(buffer_H, 0, 0, H_size, NULL, &H_input_event); // zero H buffer on device memory
 		queue.enqueueFillBuffer(buffer_CH, 0, 0, CH_size, NULL, &CH_input_event); // zero CH buffer on device memory
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
-		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins (global memory version)
-		//cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
+		//cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins (global memory version)
+		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
 		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
 		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
 		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
 
 		kernel_1.setArg(0, buffer_input_image);
 		kernel_1.setArg(1, buffer_H);
-		kernel_1.setArg(2, bin_count);
-		//kernel_1.setArg(2, cl::Local(256 * sizeof(int))); // TODO: local memory size for either 256 or 65536 bin numbers
-		//kernel_1.setArg(3, bin_count);
+		kernel_1.setArg(2, cl::Local(256 * sizeof(int))); // TODO: local memory size for either 256 or 65536 bin numbers
 
 		kernel_2.setArg(0, buffer_H);
 		kernel_2.setArg(1, buffer_CH);
@@ -162,16 +182,42 @@ int main(int argc, char **argv)
 		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel_3_event);
 		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel_4_event);
 
-		// 5.3 Copy the result from device to host
-		vector<unsigned short> output_buffer(input_image_elements);
+		// 5.3 Copy the result from device to host, print info to the console, and display the output image
 		cl::Event H_output_event, CH_output_event, LUT_output_event, output_image_event; // add additional events to measure the download time of each output vector
 
 		queue.enqueueReadBuffer(buffer_H, CL_TRUE, 0, H_size, &H[0], NULL, &H_output_event);
 		queue.enqueueReadBuffer(buffer_CH, CL_TRUE, 0, CH_size, &CH[0], NULL, &CH_output_event);
 		queue.enqueueReadBuffer(buffer_LUT, CL_TRUE, 0, LUT_size, &LUT[0], NULL, &LUT_output_event);
-		queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer.size() * sizeof(unsigned short), &output_buffer.data()[0], NULL, &output_image_event);
 
-		// 5.4 Process and display results
+		CImgDisplay output_image_display;
+
+		if (bin_count == 256)
+		{
+			vector<unsigned char> output_buffer_8(input_image_elements); // "unsigned char" is sufficient for data from the output 8-bit image buffer
+			queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer_8.size() * sizeof(unsigned char), &output_buffer_8.data()[0], NULL, &output_image_event);
+
+			CImg<unsigned char> output_image_8(output_buffer_8.data(), input_image_width, input_image_height, input_image.depth(), input_image.spectrum());
+
+			/*
+			 * display the output 8-bit image;
+			 * resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
+			 */
+			output_image_display.assign(CImg<unsigned char>(output_image_8).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (8-bit)");
+		}
+		else
+		{
+			vector<unsigned short> output_buffer_16(input_image_elements); // "unsigned short" is required for data from the output 16-bit image buffer
+			queue.enqueueReadBuffer(buffer_output_image, CL_TRUE, 0, output_buffer_16.size() * sizeof(unsigned short), &output_buffer_16.data()[0], NULL, &output_image_event);
+			
+			CImg<unsigned short> output_image_16(output_buffer_16.data(), input_image_width, input_image_height, input_image.depth(), input_image.spectrum());
+
+			/*
+			 * display the output 16-bit image;
+			 * resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
+			 */
+			output_image_display.assign(CImg<unsigned char>(output_image_16).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (16-bit)");
+		} // end if...else
+
 		// std::cout << "H = " << H << std::endl; // uncomment when testing
 		// std::cout << "CH = " << CH << std::endl; // uncomment when testing
 		// std::cout << "LUT = " << LUT << std::endl; // uncomment when testing
@@ -193,14 +239,6 @@ int main(int argc, char **argv)
 		std::cout << "Kernel execution time: " << total_kernel_time << " ns" << std::endl; // TODO: in detail and comparison
 		std::cout << "Program execution time: " << total_upload_time + total_kernel_time + total_download_time << " ns" << std::endl;
 
-		CImg<unsigned short> output_image(output_buffer.data(), input_image_width, input_image_height, input_image.depth(), input_image.spectrum());
-
-		/*
-		 * display the output image;
-		 * resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
-		 */
-		CImgDisplay output_image_display(CImg<unsigned char>(output_image).resize((int)(input_image_width* scale), (int)(input_image_height* scale)), "Output image");
-		
 		while (!input_image_display.is_closed() && !output_image_display.is_closed()
 			&& !input_image_display.is_keyESC() && !output_image_display.is_keyESC())
 		{
