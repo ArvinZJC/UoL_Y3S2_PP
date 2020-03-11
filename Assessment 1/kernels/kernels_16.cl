@@ -21,20 +21,19 @@ kernel void get_histogram(global const ushort* image, global int* H)
 // get a histogram with a specified number of bins (local memory version)
 kernel void get_histogram_pro(global const ushort* image, global int* H, local int* H_local)
 {
-	// TODO
+	
 } // end function get_histogram_pro
 
 // get a cumulative histogram
 kernel void get_cumulative_histogram(global int* H, global int* CH)
 {
 	int id = get_global_id(0);
-	int size = get_global_size(0);
 
 	/*
 	 * compute a cumulative histogram with an average histogram of the 3 colour channels' histograms;
 	 * an average histogram is used for enabling basic histogram equalisation on both monochrome and colour images
 	 */
-	for (int i = id + 1; i < size; i++)
+	for (int i = id + 1; i < BIN_COUNT && id < BIN_COUNT; i++)
 		atomic_add(&CH[i], H[id] / 3);
 } // end function get_cumulative_histogram
 
@@ -42,7 +41,9 @@ kernel void get_cumulative_histogram(global int* H, global int* CH)
 kernel void get_lut(global const int* CH, global int* LUT, const float mask)
 {
 	int id = get_global_id(0);
-	LUT[id] = CH[id] * mask;
+
+	if (id < BIN_COUNT)
+		LUT[id] = CH[id] * mask;
 } // end function get_lut
 
 // get the output image according to the LUT
