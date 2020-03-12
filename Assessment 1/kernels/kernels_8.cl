@@ -1,4 +1,11 @@
-// a kernel file for processing an 8-bit image
+/*
+ * @Description: kernel code file for applying histogram equalisation on an 8-bit RGB image
+ * @Version: 1.4.0.20200312
+ * @Author: Arvin Zhao
+ * @Date: 2020-03-08 15:29:21
+ * @Last Editors: Arvin Zhao
+ * @LastEditTime: 2020-03-12 12:07:31
+ */
 
 #define BIN_COUNT 256
 

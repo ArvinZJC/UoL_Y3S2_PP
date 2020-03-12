@@ -1,4 +1,11 @@
-// a kernel file for processing a 16-bit image
+/*
+ * @Description: kernel code file for applying histogram equalisation on a 16-bit RGB image
+ * @Version: 1.2.0.20200312
+ * @Author: Arvin Zhao
+ * @Date: 2020-03-10 18:08:13
+ * @Last Editors: Arvin Zhao
+ * @LastEditTime: 2020-03-12 12:09:36
+ */
 
 #define BIN_COUNT 65536
 

@@ -1,3 +1,12 @@
+/*
+ * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
+ * @Version: 1.4.0.20200312
+ * @Author: Arvin Zhao
+ * @Date: 2020-03-08 15:29:21
+ * @Last Editors: Arvin Zhao
+ * @LastEditTime: 2020-03-12 12:03:15
+ */
+
 #include <iostream>
 #include <vector>
 
@@ -10,9 +19,11 @@ using namespace cimg_library;
 void PrintHelp()
 {
 	std::cerr << "Application usage:" << std::endl;
-	std::cerr << "  -p : select platform " << std::endl;
+	std::cerr << "  __ : (no option specified) run with default input image file in default run mode on 1st device of 1st platform" << std::endl;
+	std::cerr << "  -l : list all platforms, devices, and run modes, and then run as no options specified if no other options" << std::endl;
+	std::cerr << "  -p : select platform" << std::endl;
 	std::cerr << "  -d : select device" << std::endl;
-	std::cerr << "  -l : list all platforms and devices, and run on the first device of the first platform" << std::endl;
+	std::cerr << "  -m : select run mode" << std::endl;
 	std::cerr << "  -f : specify input image file" << std::endl;
 	std::cerr << "       ATTENTION: 1. \"test\" referring to \"test.ppm\" is default" << std::endl;
 	std::cerr << "                  2. Only a PPM image file (8-bit/16-bit) is accepted" << std::endl;
@@ -26,16 +37,25 @@ int main(int argc, char **argv)
 	// Part 1 - handle command line options such as device selection, verbosity, etc.
 	int platform_id = 0;
 	int device_id = 0;
+	int mode_id = 0;
 	string image_filename = "test";
 
 	for (int i = 1; i < argc; i++)
 	{
-		if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1)))
+		if (strcmp(argv[i], "-l") == 0)
+		{
+			std::cout << ListPlatformsDevices();
+			std::cout << "2 run modes:" << std::endl;
+			std::cout << "   Mode 0, Fast Mode (default)" << std::endl;
+			std::cout << "   Mode 1, Basic Mode" << std::endl;
+			std::cout << "----------------------------------------------------------------" << std::endl;
+		}
+		else if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1)))
 			platform_id = atoi(argv[++i]);
 		else if ((strcmp(argv[i], "-d") == 0) && (i < (argc - 1)))
 			device_id = atoi(argv[++i]);
-		else if (strcmp(argv[i], "-l") == 0)
-			std::cout << ListPlatformsDevices() << std::endl;
+		else if ((strcmp(argv[i], "-m") == 0) && (i < (argc - 1)))
+			mode_id = atoi(argv[++i]);
 		else if ((strcmp(argv[i], "-f") == 0) && (i < (argc - 1)))
 			image_filename = argv[++i];
 		else if (strcmp(argv[i], "-h") == 0)
@@ -44,6 +64,12 @@ int main(int argc, char **argv)
 			return 0;
 		} // end nested if...else
 	} // end for
+
+	if (mode_id != 0 && mode_id != 1)
+	{
+		std::cout << "Program - ERROR: Inexistent mode ID." << std::endl;
+		return 0;
+	} // end if
 
 	string image_path = "images\\" + image_filename + ".ppm";
 
@@ -91,7 +117,7 @@ int main(int argc, char **argv)
 		// 3.1 Select computing devices
 		cl::Context context = GetContext(platform_id, device_id);
 
-		std::cout << "Runing on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl; // display the selected device
+		std::cout << "Running in " << (mode_id == 0 ? "Fast Mode" : "Basic Mode") << " on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl; // display the selected device
 
 		cl::CommandQueue queue(context, CL_QUEUE_PROFILING_ENABLE); // create a queue to which we will push commands for the device and enable profiling for the queue
 
@@ -151,28 +177,44 @@ int main(int argc, char **argv)
 		// 5.2 Setup and execute the kernel (i.e. device code)
 		cl::Kernel kernel_1, kernel_2;
 
-		if (bin_count == 256)
+		// use optimised versions if any
+		if (mode_id == 0)
 		{
-			kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (optimised version)
-			kernel_2 = cl::Kernel(program, "get_cumulative_histogram_pro"); // Step 2: get a cumulative histogram (optimised version)
+			if (bin_count == 256)
+			{
+				std::cout << "Using optimised histogram and cumulative histogram kernels" << std::endl;
 
-			size_t local_size = bin_count * sizeof(int);
+				kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins
+				kernel_2 = cl::Kernel(program, "get_cumulative_histogram_pro"); // Step 2: get a cumulative histogram
 
-			kernel_1.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
+				size_t local_size = bin_count * sizeof(int);
 
-			kernel_2.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
-			kernel_2.setArg(3, cl::Local(local_size)); // local memory size for a cumulative histogram
+				kernel_1.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
+
+				kernel_2.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
+				kernel_2.setArg(3, cl::Local(local_size)); // local memory size for a cumulative histogram
+			}
+			else
+			{
+				std::cout << "Using optimised cumulative histogram kernel" << std::endl;
+
+				/*
+				Step 1: get a histogram with a specified number of bins;
+				the optimised version does not support 16-bit images
+				*/
+				kernel_1 = cl::Kernel(program, "get_histogram");
+
+				kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
+			} // end if...else
 		}
+		// use basic versions
 		else
 		{
-			/*
-			Step 1: get a histogram with a specified number of bins;
-			the local memory version does not support 16-bit images
-			*/
-			kernel_1 = cl::Kernel(program, "get_histogram");
-			
-			kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram (basic version)
+			kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins
+			kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
 		} // end if...else
+
+		std::cout << "----------------------------------------------------------------" << std::endl;
 
 		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
 		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
@@ -188,7 +230,7 @@ int main(int argc, char **argv)
 
 		/*
 		the mask for normalising a cumulative histogram;
-		formula: max colour level (255/65535) ¡Â total pixels (width times height)
+		formula: max colour level (255 or 65535) / total pixels (width times height)
 		*/
 		kernel_3.setArg(2, (float)(bin_count - 1) / (int)(input_image_elements / input_image.spectrum()));
 		
@@ -247,8 +289,9 @@ int main(int argc, char **argv)
 			+ H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total upload time of input vectors
-		cl_ulong total_kernel_time = kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
-			+ kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+		cl_ulong kernel_1_time = kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // histogram kernel execution time
+		cl_ulong kernel_2_time = kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // cumulative histogram kernel execution time
+		cl_ulong total_kernel_time = kernel_1_time + kernel_2_time
 			+ kernel_3_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_3_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ kernel_4_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_4_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total execution time of kernels
 		cl_ulong total_download_time = H_output_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_output_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
@@ -256,9 +299,12 @@ int main(int argc, char **argv)
 			+ LUT_output_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - LUT_output_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total download time of output vectors
 
-		std::cout << "Memory transfer time: " << total_upload_time << " ns" << std::endl;
-		std::cout << "Kernel execution time: " << total_kernel_time << " ns" << std::endl; // TODO: in detail and comparison
-		std::cout << "Program execution time: " << total_upload_time + total_kernel_time + total_download_time << " ns" << std::endl;
+		// display time in microseconds
+		std::cout << "Memory transfer time: " << total_upload_time / 1000 << " us" << std::endl;
+		std::cout << "Kernel execution time: " << total_kernel_time / 1000 << " us" << std::endl;
+		std::cout << "   Histogram kernel execution time: " << kernel_1_time / 1000 << " us" << std::endl;
+		std::cout << "   Cumulative histogram kernel execution time: " << kernel_2_time / 1000 << " us" << std::endl;
+		std::cout << "Program execution time: " << (total_upload_time + total_kernel_time + total_download_time) / 1000 << " us" << std::endl;
 
 		while (!input_image_display.is_closed() && !output_image_display.is_closed()
 			&& !input_image_display.is_keyESC() && !output_image_display.is_keyESC())
@@ -267,13 +313,13 @@ int main(int argc, char **argv)
 			output_image_display.wait(1);
 		} // end while
 	}
-	catch (const cl::Error& err)
+	catch (const cl::Error& e)
 	{
-		std::cerr << "ERROR: " << err.what() << ", " << getErrorString(err.err()) << std::endl;
+		std::cerr << "OpenCL - ERROR: " << e.what() << ", " << getErrorString(e.err()) << std::endl;
 	}
-	catch (CImgException& err)
+	catch (CImgException& e)
 	{
-		std::cerr << "ERROR: " << err.what() << std::endl;
+		std::cerr << "CImg - ERROR: " << e.what() << std::endl;
 	} // end try...catch
 
 	return 0;
