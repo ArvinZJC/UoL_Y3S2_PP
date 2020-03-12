@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 		*/
 		if (padding_size)
 		{
-			std::vector<int> A_ext(local_size - padding_size, 0); // create an extra vector with neutral values
+			std::vector<mytype> A_ext(local_size - padding_size, 0); // create an extra vector with neutral values
 			A.insert(A.end(), A_ext.begin(), A_ext.end()); // append that extra vector to our input
 		} // end if
 
