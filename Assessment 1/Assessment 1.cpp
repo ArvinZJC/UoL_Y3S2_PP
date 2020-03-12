@@ -75,16 +75,16 @@ int main(int argc, char **argv)
 			input_image_size = input_image_elements * sizeof(unsigned char); // it is equal to "input_image_elements" because the value of "sizeof(unsigned char)" is 1
 
 			/*
-			 * display the input 16-bit image;
-			 * resize to provide a better view when necessary (this does not affect the input image data for processing)
-			 */
+			display the input 16-bit image;
+			resize to provide a better view when necessary (this does not affect the input image data for processing)
+			*/
 			input_image_display.assign(CImg<unsigned char>(input_image_8).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (8-bit)");
 		} // end if
 		else
 			/*
-			 * display the input 16-bit image;
-			 * resize to provide a better view when necessary (this does not affect the input image data for processing)
-			 */
+			display the input 16-bit image;
+			resize to provide a better view when necessary (this does not affect the input image data for processing)
+			*/
 			input_image_display.assign(CImg<unsigned char>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (16-bit)");
 		
 		// Part 3 - host operations
@@ -149,15 +149,23 @@ int main(int argc, char **argv)
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
-		//cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram"); // Step 1: get a histogram with a specified number of bins (global memory version)
-		cl::Kernel kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
+		cl::Kernel kernel_1;
+
+		if (bin_count == 256)
+			kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
+		else
+			/*
+			Step 1: get a histogram with a specified number of bins (global memory version);
+			the local memory version does not support 16-bit images
+			*/
+			kernel_1 = cl::Kernel(program, "get_histogram");
+
 		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
 		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
 		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
 
 		kernel_1.setArg(0, buffer_input_image);
 		kernel_1.setArg(1, buffer_H);
-		kernel_1.setArg(2, cl::Local(256 * sizeof(int))); // TODO: local memory size for either 256 or 65536 bin numbers
 
 		kernel_2.setArg(0, buffer_H);
 		kernel_2.setArg(1, buffer_CH);
@@ -166,9 +174,9 @@ int main(int argc, char **argv)
 		kernel_3.setArg(1, buffer_LUT);
 
 		/*
-		 * the mask for normalising a cumulative histogram;
-		 * formula: max colour level (255/65535) ¡Â total pixels (width times height)
-		 */
+		the mask for normalising a cumulative histogram;
+		formula: max colour level (255/65535) ¡Â total pixels (width times height)
+		*/
 		kernel_3.setArg(2, (float)(bin_count - 1) / (int)(input_image_elements / input_image.spectrum()));
 		
 		kernel_4.setArg(0, buffer_input_image);
@@ -199,9 +207,9 @@ int main(int argc, char **argv)
 			CImg<unsigned char> output_image_8(output_buffer_8.data(), input_image_width, input_image_height, input_image.depth(), input_image.spectrum());
 
 			/*
-			 * display the output 8-bit image;
-			 * resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
-			 */
+			display the output 8-bit image;
+			resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
+			*/
 			output_image_display.assign(CImg<unsigned char>(output_image_8).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (8-bit)");
 		}
 		else
@@ -212,9 +220,9 @@ int main(int argc, char **argv)
 			CImg<unsigned short> output_image_16(output_buffer_16.data(), input_image_width, input_image_height, input_image.depth(), input_image.spectrum());
 
 			/*
-			 * display the output 16-bit image;
-			 * resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
-			 */
+			display the output 16-bit image;
+			resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
+			*/
 			output_image_display.assign(CImg<unsigned char>(output_image_16).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (16-bit)");
 		} // end if...else
 
