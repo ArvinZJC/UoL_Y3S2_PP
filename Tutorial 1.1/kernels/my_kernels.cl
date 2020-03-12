@@ -8,7 +8,7 @@ kernel void add(global const int* A, global const int* B, global int* C)
 	/*
 	// better understand the get_local_id and get_local_size functions (Section 1 in Tutorial 2)
 	if (id == 0)
-		printf("Work group size: %d\n", get_local_size(0); // perform this part only once i.e. for Work Item 0
+		printf("Work group size: %d\n", get_local_size(0)); // perform this part only once i.e. for Work Item 0
 
 	int localId = get_local_id(0);
 

@@ -110,8 +110,8 @@ int main(int argc, char **argv)
 		get the smallest work group size suggested (Section 1 of Tutorial 2);
 		its multiples are also possible, up to the maximum work group size
 		*/
-		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device) << endl;
-		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) << endl; // get the maximum work group size (Section 1 of Tutorial 2)
+		// std::cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device) << std::endl;
+		// std::cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) << std::endl; // get the maximum work group size (Section 1 of Tutorial 2)
 
 		// 4.3 Copy the result from device to host (comment the following 1 line in Section 2.7)
 		// queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0]);
