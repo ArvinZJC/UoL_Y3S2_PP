@@ -1,6 +1,6 @@
 /*
  * @Description: kernel code file for applying histogram equalisation on an 8-bit RGB image
- * @Version: 1.4.0.20200312
+ * @Version: 1.4.4.20200312
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -10,7 +10,7 @@
 #define BIN_COUNT 256
 
 // get a histogram with a specified number of bins (basic version)
-kernel void get_histogram(global const uchar* image, global int* H)
+kernel void get_H(global const uchar* image, global int* H)
 {
 	int id = get_global_id(0);
 	
@@ -18,18 +18,20 @@ kernel void get_histogram(global const uchar* image, global int* H)
 	if (id < BIN_COUNT)
 		H[id] = 0;
 
+	barrier(CLK_GLOBAL_MEM_FENCE); // wait for all threads to finish the initialisation
+
 	/*
 	compute the histogram;
 	take a value from the input image as a bin index of the histogram
 	*/
 	atomic_inc(&H[image[id]]);
-} // end function get_histogram
+} // end function get_H
 
 /*
 get a histogram with a specified number of bins (optimised version);
 local memory is used
 */
-kernel void get_histogram_pro(global const uchar* image, global int* H, local int* H_local)
+kernel void get_H_pro(global const uchar* image, global int* H, local int* H_local)
 {
 	int local_id = get_local_id(0);
 	int id = get_global_id(0);
@@ -51,10 +53,10 @@ kernel void get_histogram_pro(global const uchar* image, global int* H, local in
 	// write the local histogram out to the global histogram
 	if (local_id < BIN_COUNT)
 		atomic_add(&H[local_id], H_local[local_id]);
-} // end function get_histogram_pro
+} // end function get_H_pro
 
 // get a cumulative histogram (basic version)
-kernel void get_cumulative_histogram(global int* H, global int* CH)
+kernel void get_CH(global const int* H, global int* CH)
 {
 	int id = get_global_id(0);
 
@@ -64,13 +66,14 @@ kernel void get_cumulative_histogram(global int* H, global int* CH)
 	*/
 	for (int i = id + 1; i < BIN_COUNT && id < BIN_COUNT; i++)
 		atomic_add(&CH[i], H[id] / 3);
-} // end function get_cumulative_histogram
+} // end function get_CH
 
 /*
 get a cumulative histogram (optimised version);
-a double-buffered version of the Hillis-Steele inclusive scan and local memory are used
+a double-buffered version of the Hillis-Steele inclusive scan and local memory are used;
+the number of local elements should be equal to BIN_COUNT
 */
-kernel void get_cumulative_histogram_pro(global int* H, global int* CH, local int* H_local, local int * CH_local)
+kernel void get_CH_pro(global const int* H, global int* CH, local int* H_local, local int* CH_local)
 {
 	int id = get_global_id(0);
 	int local_id = get_local_id(0);
@@ -101,7 +104,7 @@ kernel void get_cumulative_histogram_pro(global int* H, global int* CH, local in
 	an average histogram is used for enabling basic histogram equalisation on both monochrome and colour images
 	*/
 	CH[id] = H_local[local_id] / 3;
-} // end function get_cumulative_histogram_pro
+} // end function get_CH_pro
 
 // get a normalised cumulative histogram as a look-up table (LUT)
 kernel void get_lut(global const int* CH, global int* LUT, const float mask)
@@ -113,7 +116,7 @@ kernel void get_lut(global const int* CH, global int* LUT, const float mask)
 } // end function get_lut
 
 // get the output image according to the LUT
-kernel void get_processed_image(global const uchar* input_image, global int* LUT, global uchar* output_image)
+kernel void get_processed_image(global const uchar* input_image, global const int* LUT, global uchar* output_image)
 {
 	int id = get_global_id(0);
 	output_image[id] = LUT[input_image[id]];
