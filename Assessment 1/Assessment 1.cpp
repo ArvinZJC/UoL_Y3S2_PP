@@ -1,6 +1,6 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.4.4.20200312
+ * @Version: 1.4.5.20200312
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 		int test = 0;
 		for (int i = 0; i < H.size(); i++)
 			test += H[i];
-		std::cout << test << std::endl; // TODO
+		std::cout << test << "/" << input_image_elements << std::endl; // TODO
 		// std::cout << "H = " << H << std::endl;
 		// std::cout << "CH = " << CH << std::endl;
 		// std::cout << "BS = " << BS << std::endl;
