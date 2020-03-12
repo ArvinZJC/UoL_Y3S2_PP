@@ -148,8 +148,8 @@ int main(int argc, char **argv)
 		std::cout << "A = " << A << std::endl;
 		std::cout << "B = " << B << std::endl;
 
-		queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size));
-		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size));
+		queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(nr_groups), cl::NullRange);
+		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(nr_groups), cl::NullRange);
 		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size));
 
 		// 4.3 Copy the result from device to host
