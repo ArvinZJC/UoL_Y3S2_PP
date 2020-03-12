@@ -9,10 +9,10 @@ kernel void reduce_add_1(global const int* A, global int* B)
 	barrier(CLK_GLOBAL_MEM_FENCE); // wait for all threads to finish copying
 	
 	/*
-	 * perform reduce on the output array;
-	 * the modulo operator is used to skip a set of values (e.g. 2 in the next line);
-	 * we also check if the added element is within bounds (i.e. < N)
-	 */
+	perform reduce on the output array;
+	the modulo operator is used to skip a set of values (e.g. 2 in the next line);
+	we also check if the added element is within bounds (i.e. < N)
+	*/
 	if ((id % 2 == 0) && (id + 1 < N)) 
 		B[id] += B[id + 1];
 
@@ -76,9 +76,9 @@ kernel void reduce_add_3(global const int* A, global int* B, local int* scratch)
 } // end function reduce_add_3
 
 /*
- * reduce using local memory + accumulation of local sums into a single location and interleaved addressing;
- * it works with any number of groups - not optimal
- */
+reduce using local memory + accumulation of local sums into a single location and interleaved addressing;
+it works with any number of groups - not optimal
+*/
 kernel void reduce_add_4(global const int* A, global int* B, local int* scratch)
 {
 	int id = get_global_id(0);
@@ -98,18 +98,18 @@ kernel void reduce_add_4(global const int* A, global int* B, local int* scratch)
 	} // end for
 
 	/*
-	 * we add results from all local groups to the first element of the array;
-	 * serial operation, but works for any group size;
-	 * copy the cache to output array
-	 */
+	we add results from all local groups to the first element of the array;
+	serial operation, but works for any group size;
+	copy the cache to output array
+	*/
 	if (!lid)
 		atomic_add(&B[0], scratch[lid]);
 } // end function reduce_add_4
 
 /*
- * reduce using local memory + accumulation of local sums into a single location and sequential addressing;
- * it works with any number of groups - not optimal
- */
+reduce using local memory + accumulation of local sums into a single location and sequential addressing;
+it works with any number of groups - not optimal
+*/
 kernel void reduce_add_5(global const int* A, global int* B, local int* scratch)
 {
 	int id = get_global_id(0);
@@ -132,10 +132,10 @@ kernel void reduce_add_5(global const int* A, global int* B, local int* scratch)
 	} // end for
 	
 	/*
-	 * we add results from all local groups to the first element of the array;
-	 * serial operation, but works for any group size;
-	 * copy the cache to output array
-	 */
+	we add results from all local groups to the first element of the array;
+	serial operation, but works for any group size;
+	copy the cache to output array
+	*/
 	if (!lid)
 		atomic_add(&B[0], scratch[lid]);
 } // end function reduce_add_5
@@ -164,9 +164,9 @@ kernel void hist_2(global const int* A, global int* H, int nr_bins)
 } // end function hist_2
 
 /*
- * Hillis-Steele basic inclusive scan;
- * require additional global buffer B to avoid data overwriting
- */
+Hillis-Steele basic inclusive scan;
+require additional global buffer B to avoid data overwriting
+*/
 kernel void scan_hs(global int* A, global int* B)
 {
 	int id = get_global_id(0);
@@ -192,10 +192,10 @@ kernel void scan_hs(global int* A, global int* B)
 } // end function scan_hs
 
 /*
- * a double-buffered version of the Hillis-Steele inclusive scan;
- * require 2 additional input arguments which correspond to 2 local buffers;
- * allow only for calculating partial reductions in a single work group separately
- */
+a double-buffered version of the Hillis-Steele inclusive scan;
+require 2 additional input arguments which correspond to 2 local buffers;
+allow only for calculating partial reductions in a single work group separately
+*/
 kernel void scan_add(__global const int* A, global int* B, local int* scratch_1, local int* scratch_2)
 {
 	int id = get_global_id(0);

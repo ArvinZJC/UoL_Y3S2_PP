@@ -1,8 +1,8 @@
 /*
- * a double-buffered version of the Hillis-Steele inclusive scan;
- * require 2 additional input arguments which correspond to 2 local buffers;
- * allow only for calculating partial reductions in a single work group separately
- */
+a double-buffered version of the Hillis-Steele inclusive scan;
+require 2 additional input arguments which correspond to 2 local buffers;
+allow only for calculating partial reductions in a single work group separately
+*/
 kernel void scan_add(__global const int* A, global int* B, local int* scratch_1, local int* scratch_2)
 {
 	int id = get_global_id(0);

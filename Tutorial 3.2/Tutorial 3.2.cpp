@@ -68,22 +68,22 @@ int main(int argc, char **argv)
 
 		// Part 3 - memory allocation
 		/*
-		 * allocate 10 elements with an initial value 1 - their sum is 10 so it should be easy to check the results;
-		 * a large size (1000) has been tested and the program worked well (adjust output to the console accordingly to save space)
-		 */
+		allocate 10 elements with an initial value 1 - their sum is 10 so it should be easy to check the results;
+		a large size (1000) has been tested and the program worked well (adjust output to the console accordingly to save space)
+		*/
 		std::vector<mytype> A(10, 1);
 
 		/*
-		 * the following part adjusts the length of the input vector so it can be run for a specific workgroup size;
-		 * if the total input length is divisible by the workgroup size, this makes the code more efficient
-		 */
+		the following part adjusts the length of the input vector so it can be run for a specific workgroup size;
+		if the total input length is divisible by the workgroup size, this makes the code more efficient
+		*/
 		size_t local_size = 5;
 		size_t padding_size = A.size() % local_size;
 
 		/*
-		 * if the input vector is not a multiple of "local_size", insert additional neutral elements (0 for addition) so that the total will not be affected
-		 * due to the modulo operator (%), the condition has the same effect as "padding_size != 0"
-		 */
+		if the input vector is not a multiple of "local_size", insert additional neutral elements (0 for addition) so that the total will not be affected
+		due to the modulo operator (%), the condition has the same effect as "padding_size != 0"
+		*/
 		if (padding_size)
 		{
 			std::vector<int> A_ext(local_size - padding_size, 0); // create an extra vector with neutral values

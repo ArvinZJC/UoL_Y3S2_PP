@@ -66,9 +66,9 @@ int main(int argc, char **argv)
 
 		// Part 3 - memory allocation
 		/*
-		 * host - input;
-		 * C++ 11 allows this type of initialisation
-		 */
+		host - input;
+		C++ 11 allows this type of initialisation
+		*/
 		std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		
 		size_t vector_elements = A.size(); // number of elements

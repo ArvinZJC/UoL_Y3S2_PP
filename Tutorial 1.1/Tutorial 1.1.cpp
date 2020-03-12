@@ -107,9 +107,9 @@ int main(int argc, char **argv)
 
 		// cl::Device device = context.getInfo<CL_CONTEXT_DEVICES>()[0]; // get the device
 		/*
-		 * get the smallest work group size suggested (Section 1 of Tutorial 2);
-		 * its multiples are also possible, up to the maximum work group size
-		 */
+		get the smallest work group size suggested (Section 1 of Tutorial 2);
+		its multiples are also possible, up to the maximum work group size
+		*/
 		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device) << endl;
 		// cerr << kernel_add.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) << endl; // get the maximum work group size (Section 1 of Tutorial 2)
 

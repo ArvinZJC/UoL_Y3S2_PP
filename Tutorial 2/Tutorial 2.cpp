@@ -56,9 +56,9 @@ int main(int argc, char **argv)
 		CImgDisplay disp_input(image_input, "input");
 
 		/*
-		 * a 3x3 convolution mask for Gaussian blur (uncomment this in Section 3.2.2);
-		 * for more convolution masks, you can refer to: https://en.wikipedia.org/wiki/Kernel_(image_processing)
-		 */
+		a 3x3 convolution mask for Gaussian blur (uncomment this in Section 3.2.2);
+		for more convolution masks, you can refer to: https://en.wikipedia.org/wiki/Kernel_(image_processing)
+		*/
 		std::vector<float> convolution_mask = { 1.f / 16, 2.f / 16, 1.f / 16,
 												2.f / 16, 4.f / 16, 2.f / 16,
 												1.f / 16, 2.f / 16, 1.f / 16 };

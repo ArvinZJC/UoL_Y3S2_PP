@@ -68,24 +68,24 @@ int main(int argc, char **argv)
 
 		// Part 3 - memory allocation
 		/*
-		 * host - input;
-		 * allocate 10 elements with an initial value 1 - their sum is 10 so it should be easy to check the results
-		 */
+		host - input;
+		allocate 10 elements with an initial value 1 - their sum is 10 so it should be easy to check the results
+		*/
 		std::vector<mytype> A(10, 1);
 		// std::vector<mytype> A = { 6, 6, 6, 9, 9, 9, 9, 8, 5, 3}; // uncomment this in the introduction of Section 2.1
 		// std::vector<mytype> A = { 6, 6, 6, 9, 9, 9, 9, 8, 5, 2333}; // uncomment this in Task4U-1 of Section 2.1
 
 		/*
-		 * the following part adjusts the length of the input vector so it can be run for a specific workgroup size;
-		 * if the total input length is divisible by the workgroup size, this makes the code more efficient
-		 */
+		the following part adjusts the length of the input vector so it can be run for a specific workgroup size;
+		if the total input length is divisible by the workgroup size, this makes the code more efficient
+		*/
 		size_t local_size = 10;
 		size_t padding_size = A.size() % local_size;
 
 		/*
-		 * if the input vector is not a multiple of "local_size", insert additional neutral elements (0 for addition) so that the total will not be affected
-		 * due to the modulo operator (%), the condition has the same effect as "padding_size != 0"
-		 */
+		if the input vector is not a multiple of "local_size", insert additional neutral elements (0 for addition) so that the total will not be affected
+		due to the modulo operator (%), the condition has the same effect as "padding_size != 0"
+		*/
 		if (padding_size)
 		{
 			std::vector<int> A_ext(local_size - padding_size, 0); // create an extra vector with neutral values
@@ -99,9 +99,9 @@ int main(int argc, char **argv)
 		// host - output
 		std::vector<mytype> B(input_elements);
 		/*
-		 * this is suggested for Task4U-2 and Task4U-3 in Section 1.2 because we are using only a single element in the output vector;
-		 * adjust the length to 1 so that there will be more memory available on a device for the input vector - it is important to perform reduce on larger datasets
-		 */
+		this is suggested for Task4U-2 and Task4U-3 in Section 1.2 because we are using only a single element in the output vector;
+		adjust the length to 1 so that there will be more memory available on a device for the input vector - it is important to perform reduce on larger datasets
+		*/
 		// std::vector<mytype> B(1);
 		// std::vector<mytype> B(10); // uncomment this in Section 2.1
 
