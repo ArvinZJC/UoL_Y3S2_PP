@@ -149,18 +149,31 @@ int main(int argc, char **argv)
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
-		cl::Kernel kernel_1;
+		cl::Kernel kernel_1, kernel_2;
 
 		if (bin_count == 256)
-			kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (local memory version)
+		{
+			kernel_1 = cl::Kernel(program, "get_histogram_pro"); // Step 1: get a histogram with a specified number of bins (optimised version)
+			kernel_2 = cl::Kernel(program, "get_cumulative_histogram_pro"); // Step 2: get a cumulative histogram (optimised version)
+
+			size_t local_size = bin_count * sizeof(int);
+
+			kernel_1.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
+
+			kernel_2.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
+			kernel_2.setArg(3, cl::Local(local_size)); // local memory size for a cumulative histogram
+		}
 		else
+		{
 			/*
-			Step 1: get a histogram with a specified number of bins (global memory version);
+			Step 1: get a histogram with a specified number of bins;
 			the local memory version does not support 16-bit images
 			*/
 			kernel_1 = cl::Kernel(program, "get_histogram");
+			
+			kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram (basic version)
+		} // end if...else
 
-		cl::Kernel kernel_2 = cl::Kernel(program, "get_cumulative_histogram"); // Step 2: get a cumulative histogram
 		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
 		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
 

@@ -2,7 +2,7 @@
 
 #define BIN_COUNT 65536
 
-// get a histogram with a specified number of bins (global memory version)
+// get a histogram with a specified number of bins
 kernel void get_histogram(global const ushort* image, global int* H)
 {
 	int id = get_global_id(0);
