@@ -108,7 +108,7 @@ a helper kernel of the kernel for getting a cumulative histogram
 */
 kernel void get_complete_CH(global const int* BS_scanned, global int* CH)
 {
-	CH[get_global_id(0)] += BS_scanned[get_group_id(0)]; // TODO
+	CH[get_global_id(0)] += BS_scanned[get_group_id(0)];
 } // end function get_complete_CH
 
 // get a normalised cumulative histogram as a look-up table (LUT)
