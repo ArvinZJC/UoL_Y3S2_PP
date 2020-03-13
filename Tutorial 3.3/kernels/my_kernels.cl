@@ -1,4 +1,7 @@
-// Blelloch basic exclusive scan
+/*
+Blelloch basic exclusive scan;
+the following implementation has a limitation that the size of A must be a multiple of 4
+*/
 kernel void scan_bl(global int* A)
 {
 	int id = get_global_id(0);
