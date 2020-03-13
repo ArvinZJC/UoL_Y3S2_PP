@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 			std::cerr << "  -f : specify input image file" << std::endl;
 			std::cerr << "       ATTENTION: 1. \"test\" referring to \"test.ppm\" is default" << std::endl;
 			std::cerr << "                  2. Only a PPM image file (8-bit/16-bit) is accepted" << std::endl;
-			std::cerr << "                  3. When using this option, please only enter the filename without the extension (i.e. test)" << std::endl;
+			std::cerr << "                  3. When using this option, please only enter the filename without the extension (e.g. test)" << std::endl;
 			std::cerr << "                  4. The specified image should be put under the folder \"images\"" << std::endl;
 			std::cerr << "  -h : print this message" << std::endl;
 			return 0;
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
 		queue.enqueueReadBuffer(buffer_H, CL_TRUE, 0, H_size, &H[0]);
 		queue.enqueueReadBuffer(buffer_CH, CL_TRUE, 0, CH_size, &CH[0]);
 		queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &CH[0]);
-		queue.enqueueReadBuffer(buffer_BS_scanned, CL_TRUE, 0, BS_scanned_size, &CH[0]);
+		queue.enqueueReadBuffer(buffer_BS_scanned, CL_TRUE, 0, BS_scanned_size, &CH[0]); // TODO: read when using optimised helper kernel
 		queue.enqueueReadBuffer(buffer_LUT, CL_TRUE, 0, LUT_size, &LUT[0]);
 		int test = 0;
 		for (int i = 0; i < H.size(); i++)
