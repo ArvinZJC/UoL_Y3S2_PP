@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 		} // end if
 
 		size_t input_elements = A.size(); // number of input elements
-		size_t input_size = A.size() * sizeof(mytype); // size in bytes
+		size_t input_size = input_elements * sizeof(mytype); // size in bytes
 		size_t nr_groups = input_elements / local_size;
 
 		// host - output

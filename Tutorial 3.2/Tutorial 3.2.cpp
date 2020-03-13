@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 		} // end if
 
 		size_t A_elements = A.size(); // number of elements of Vector A
-		size_t A_size = A.size() * sizeof(mytype); // size in bytes
+		size_t A_size = A_elements * sizeof(mytype); // size in bytes
 		size_t nr_groups = A_elements / local_size;
 
 		std::vector<mytype> B(A_elements);

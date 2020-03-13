@@ -68,27 +68,8 @@ int main(int argc, char **argv)
 
 		// Part 3 - memory allocation
 		std::vector<mytype> A(8, 1); // allocate 8 elements with an initial value 1
-
-		/*
-		the following part adjusts the length of the input vector so it can be run for a specific workgroup size;
-		if the total input length is divisible by the workgroup size, this makes the code more efficient
-		*/
-		size_t local_size = 8;
-		size_t padding_size = A.size() % local_size;
-
-		/*
-		if the input vector is not a multiple of "local_size", insert additional neutral elements (0 for addition) so that the total will not be affected
-		due to the modulo operator (%), the condition has the same effect as "padding_size != 0"
-		*/
-		if (padding_size)
-		{
-			std::vector<mytype> A_ext(local_size - padding_size, 0); // create an extra vector with neutral values
-			A.insert(A.end(), A_ext.begin(), A_ext.end()); // append that extra vector to our input
-		} // end if
-
 		size_t A_elements = A.size(); // number of elements of Vector A
-		size_t A_size = A.size() * sizeof(mytype); // size in bytes
-		size_t nr_groups = A_elements / local_size;
+		size_t A_size = A_elements * sizeof(mytype); // size in bytes
 
 		cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, A_size); // device - buffers
 
@@ -101,7 +82,7 @@ int main(int argc, char **argv)
 
 		kernel_1.setArg(0, buffer_A);
 
-		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(local_size)); // call all kernels in a sequence
+		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(A_elements), cl::NullRange); // call all kernels in a sequence
 
 		// 4.3 Copy the result from device to host
 		std::cout << "A = " << A << std::endl;
