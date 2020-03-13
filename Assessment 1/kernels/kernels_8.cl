@@ -1,10 +1,10 @@
 /*
  * @Description: kernel code file for applying histogram equalisation on an 8-bit RGB image
- * @Version: 1.4.4.20200312
+ * @Version: 1.5.0.20200313
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-12 12:07:31
+ * @LastEditTime: 2020-03-13 12:07:31
  */
 
 #define BIN_COUNT 256
@@ -31,7 +31,7 @@ kernel void get_H(global const uchar* image, global int* H)
 get a histogram with a specified number of bins (optimised version);
 local memory is used
 */
-kernel void get_H_pro(global const uchar* image, global int* H, local int* H_local)
+kernel void get_H_pro(global const uchar* image, global int* H, local int* H_local, const int image_elements)
 {
 	int local_id = get_local_id(0);
 	int id = get_global_id(0);
@@ -46,7 +46,8 @@ kernel void get_H_pro(global const uchar* image, global int* H, local int* H_loc
 	compute the local histogram;
 	take a value from the input image as a bin index of the local histogram
 	*/
-	atomic_inc(&H_local[image[id]]);
+	if (id < image_elements)
+		atomic_inc(&H_local[image[id]]);
 
 	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish computing the local histogram
 

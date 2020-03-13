@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.4.5.20200312
+ * @Version: 1.5.0.20200313
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-12 12:03:15
+ * @LastEditTime: 2020-03-13 12:03:15
  */
 
 #include <iostream>
@@ -14,23 +14,6 @@
 #include "CImg.h"
 
 using namespace cimg_library;
-
-// print help info to the console when required
-void PrintHelp()
-{
-	std::cerr << "Application usage:" << std::endl;
-	std::cerr << "  __ : (no option specified) run with default input image file in default run mode on 1st device of 1st platform" << std::endl;
-	std::cerr << "  -l : list all platforms, devices, and run modes, and then run as no options specified if no other options" << std::endl;
-	std::cerr << "  -p : select platform" << std::endl;
-	std::cerr << "  -d : select device" << std::endl;
-	std::cerr << "  -m : select run mode" << std::endl;
-	std::cerr << "  -f : specify input image file" << std::endl;
-	std::cerr << "       ATTENTION: 1. \"test\" referring to \"test.ppm\" is default" << std::endl;
-	std::cerr << "                  2. Only a PPM image file (8-bit/16-bit) is accepted" << std::endl;
-	std::cerr << "                  3. When using this option, please only enter the filename without the extension (i.e. test)" << std::endl;
-	std::cerr << "                  4. The specified image should be put under the folder \"images\"" << std::endl;
-	std::cerr << "  -h : print this message" << std::endl;
-} // end function PrintHelp
 
 int main(int argc, char **argv)
 {
@@ -60,7 +43,19 @@ int main(int argc, char **argv)
 			image_filename = argv[++i];
 		else if (strcmp(argv[i], "-h") == 0)
 		{
-			PrintHelp();
+			// print help info to the console
+			std::cerr << "Application usage:" << std::endl;
+			std::cerr << "  __ : (no option specified) run with default input image file in default run mode on 1st device of 1st platform" << std::endl;
+			std::cerr << "  -l : list all platforms, devices, and run modes, and then run as no options specified if no other options" << std::endl;
+			std::cerr << "  -p : select platform" << std::endl;
+			std::cerr << "  -d : select device" << std::endl;
+			std::cerr << "  -m : select run mode" << std::endl;
+			std::cerr << "  -f : specify input image file" << std::endl;
+			std::cerr << "       ATTENTION: 1. \"test\" referring to \"test.ppm\" is default" << std::endl;
+			std::cerr << "                  2. Only a PPM image file (8-bit/16-bit) is accepted" << std::endl;
+			std::cerr << "                  3. When using this option, please only enter the filename without the extension (i.e. test)" << std::endl;
+			std::cerr << "                  4. The specified image should be put under the folder \"images\"" << std::endl;
+			std::cerr << "  -h : print this message" << std::endl;
 			return 0;
 		} // end nested if...else
 	} // end for
@@ -151,9 +146,46 @@ int main(int argc, char **argv)
 		size_t CH_elements = CH.size(); // number of elements
 		size_t CH_size = CH_elements * sizeof(int); // size in bytes
 
-		size_t local_elements_16 = 256; // number of local elements when processing a 16-bit image // TODO
-		size_t local_size = local_elements_16 * sizeof(int); // size in bytes
-		size_t group_count = CH_elements / local_elements_16;
+		/*
+		number of local elements when processing an 8-bit image;
+		this is equal to the number of bins of an 8-bit image so as to use 1 work group for a kernel since it is not a large problem;
+		it is also decided based on the fact that optimised cumulative histogram kernel execution time will be longer due to helper kernels needed for multiple work groups
+		*/
+		size_t local_elements_8 = 256;
+
+		size_t local_size_8 = local_elements_8 * sizeof(int); // size in bytes
+
+		/*
+		the following part adjusts the length of global elements of the histogram kernel for an 8-bit image;
+		the aim is to ensure that the global size is a multiple of the local size
+		*/
+		size_t kernel1_global_elements_8 = input_image_elements;
+		size_t kernel1_global_elements_8_padding = kernel1_global_elements_8 % local_elements_8;
+
+		if (kernel1_global_elements_8_padding)
+			kernel1_global_elements_8 += (local_elements_8 - kernel1_global_elements_8_padding);
+
+		// the following part gets the max work item sizes of the device
+		vector<cl::Platform> platforms;
+		vector<cl::Device> devices;
+		vector<size_t> max_work_item_sizes;
+		cl::Platform::get(&platforms);
+		platforms[platform_id].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+		max_work_item_sizes = devices[device_id].getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
+
+		size_t local_elements_16 = max_work_item_sizes[0]; // number of local elements when processing a 16-bit image
+		size_t local_size_16 = local_elements_16 * sizeof(int); // size in bytes
+		size_t group_count = bin_count == 256 ? 1 : CH_elements / local_elements_16;
+
+		/*
+		the following part adjusts the length of global elements of the cumulative histogram kernel for a 16-bit image;
+		the aim is to ensure that the global size is a multiple of the local size
+		*/
+		size_t kernel2_global_elements_16 = H_elements;
+		size_t kernel2_global_elements_16_padding = kernel2_global_elements_16 % local_elements_16;
+
+		if (kernel2_global_elements_16_padding)
+			kernel2_global_elements_16 += (local_elements_16 - kernel2_global_elements_16_padding);
 
 		std::vector<int> BS(group_count, 0); // create a separate vector whose length is equal to the number of work groups to store the block sums
 		size_t BS_size = BS.size() * sizeof(int); // size in bytes
@@ -193,7 +225,7 @@ int main(int argc, char **argv)
 		} // end if
 
 		// 5.2 Setup and execute the kernel (i.e. device code)
-		cl::Kernel kernel_1, kernel_2, kernel_2_helper1, kernel_2_helper2, kernel_2_helper3;
+		cl::Kernel kernel1, kernel2, kernel2_helper1, kernel2_helper2, kernel2_helper3;
 
 		// use optimised versions if any
 		if (mode_id == 0)
@@ -202,15 +234,14 @@ int main(int argc, char **argv)
 			{
 				std::cout << "Using optimised histogram and cumulative histogram kernels" << std::endl;
 
-				kernel_1 = cl::Kernel(program, "get_H_pro"); // Step 1: get a histogram with a specified number of bins
-				kernel_2 = cl::Kernel(program, "get_CH_pro"); // Step 2: get a cumulative histogram
-
-				size_t local_size = bin_count * sizeof(int); // use 1 work group for an 8-bit image since the histogram is not a large problem // TODO
+				kernel1 = cl::Kernel(program, "get_H_pro"); // Step 1: get a histogram with a specified number of bins
+				kernel2 = cl::Kernel(program, "get_CH_pro"); // Step 2: get a cumulative histogram
 				
-				kernel_1.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
+				kernel1.setArg(2, cl::Local(local_size_8)); // local memory size for a local histogram
+				kernel1.setArg(3, (int)input_image_elements);
 
-				kernel_2.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
-				kernel_2.setArg(3, cl::Local(local_size)); // local memory size for a cumulative histogram
+				kernel2.setArg(2, cl::Local(local_size_8)); // local memory size for a local histogram
+				kernel2.setArg(3, cl::Local(local_size_8)); // local memory size for a cumulative histogram
 			}
 			else
 			{
@@ -220,76 +251,79 @@ int main(int argc, char **argv)
 				Step 1: get a histogram with a specified number of bins;
 				the optimised version does not support 16-bit images
 				*/
-				kernel_1 = cl::Kernel(program, "get_H");
+				kernel1 = cl::Kernel(program, "get_H");
 
-				kernel_2 = cl::Kernel(program, "get_CH_pro"); // Step 2.1: get a preliminary cumulative histogram
-				kernel_2_helper1 = cl::Kernel(program, "get_BS"); // Step 2.2: get block sums of a preliminary cumulative histogram
-				kernel_2_helper2 = cl::Kernel(program, "get_scanned_BS"); // Step 2.3: get scanned block sums
-				kernel_2_helper3 = cl::Kernel(program, "get_complete_CH"); // Step 2.4: get a complete cumulative histogram
+				kernel2 = cl::Kernel(program, "get_CH_pro"); // Step 2.1: get a preliminary cumulative histogram
+				kernel2_helper1 = cl::Kernel(program, "get_BS"); // Step 2.2: get block sums of a preliminary cumulative histogram
+				kernel2_helper2 = cl::Kernel(program, "get_scanned_BS"); // Step 2.3: get scanned block sums
+				kernel2_helper3 = cl::Kernel(program, "get_complete_CH"); // Step 2.4: get a complete cumulative histogram
 
-				kernel_2.setArg(2, cl::Local(local_size)); // local memory size for a local histogram
-				kernel_2.setArg(3, cl::Local(local_size)); // local memory size for a cumulative histogram
+				kernel2.setArg(2, cl::Local(local_size_16)); // local memory size for a local histogram
+				kernel2.setArg(3, cl::Local(local_size_16)); // local memory size for a cumulative histogram
 
-				kernel_2_helper1.setArg(0, buffer_CH);
-				kernel_2_helper1.setArg(1, buffer_BS);
-				kernel_2_helper1.setArg(2, (int)local_elements_16);
+				kernel2_helper1.setArg(0, buffer_CH);
+				kernel2_helper1.setArg(1, buffer_BS);
+				kernel2_helper1.setArg(2, (int)local_elements_16);
 
-				kernel_2_helper2.setArg(0, buffer_BS);
-				kernel_2_helper2.setArg(1, buffer_BS_scanned);
+				kernel2_helper2.setArg(0, buffer_BS);
+				kernel2_helper2.setArg(1, buffer_BS_scanned);
 
-				kernel_2_helper3.setArg(0, buffer_BS_scanned);
-				kernel_2_helper3.setArg(1, buffer_CH);
+				kernel2_helper3.setArg(0, buffer_BS_scanned);
+				kernel2_helper3.setArg(1, buffer_CH);
 			} // end if...else
 		}
 		// use basic versions
 		else
 		{
-			kernel_1 = cl::Kernel(program, "get_H"); // Step 1: get a histogram with a specified number of bins
-			kernel_2 = cl::Kernel(program, "get_CH"); // Step 2: get a cumulative histogram
+			kernel1 = cl::Kernel(program, "get_H"); // Step 1: get a histogram with a specified number of bins
+			kernel2 = cl::Kernel(program, "get_CH"); // Step 2: get a cumulative histogram
 		} // end if...else
 
 		std::cout << "----------------------------------------------------------------" << std::endl;
+		
+		cl::Kernel kernel3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
+		cl::Kernel kernel4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
 
-		cl::Kernel kernel_3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
-		cl::Kernel kernel_4 = cl::Kernel(program, "get_processed_image"); // Step 4: get the output image according to the LUT
+		kernel1.setArg(0, buffer_input_image);
+		kernel1.setArg(1, buffer_H);
 
-		kernel_1.setArg(0, buffer_input_image);
-		kernel_1.setArg(1, buffer_H);
+		kernel2.setArg(0, buffer_H);
+		kernel2.setArg(1, buffer_CH);
 
-		kernel_2.setArg(0, buffer_H);
-		kernel_2.setArg(1, buffer_CH);
-
-		kernel_3.setArg(0, buffer_CH);
-		kernel_3.setArg(1, buffer_LUT);
+		kernel3.setArg(0, buffer_CH);
+		kernel3.setArg(1, buffer_LUT);
 
 		/*
 		the mask for normalising a cumulative histogram;
 		formula: max colour level (255 or 65535) / total pixels (width times height)
 		*/
-		kernel_3.setArg(2, (float)(bin_count - 1) / (int)(input_image_elements / input_image.spectrum()));
+		kernel3.setArg(2, (float)(bin_count - 1) / (int)(input_image_elements / input_image.spectrum()));
 		
-		kernel_4.setArg(0, buffer_input_image);
-		kernel_4.setArg(1, buffer_LUT);
-		kernel_4.setArg(2, buffer_output_image);
+		kernel4.setArg(0, buffer_input_image);
+		kernel4.setArg(1, buffer_LUT);
+		kernel4.setArg(2, buffer_output_image);
 
-		cl::Event kernel_1_event, kernel_2_event, kernel_2_helper1_event, kernel_2_helper2_event, kernel_2_helper3_event, kernel_3_event, kernel_4_event; // add additional events to measure the execution time of each kernel
+		cl::Event kernel1_event, kernel2_event, kernel2_helper1_event, kernel2_helper2_event, kernel2_helper3_event, kernel3_event, kernel4_event; // add additional events to measure the execution time of each kernel
 
-		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel_1_event);
+		if (mode_id == 0 && bin_count == 256)
+			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(kernel1_global_elements_8), cl::NDRange(local_elements_8), NULL, &kernel1_event); // TODO
+		else
+			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel1_event);
 
 		if (mode_id == 0 && bin_count == 65536)
 		{
-			queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(H_elements), cl::NDRange(local_elements_16), NULL, &kernel_2_event);
-			queue.enqueueNDRangeKernel(kernel_2_helper1, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel_2_helper1_event);
-			queue.enqueueNDRangeKernel(kernel_2_helper2, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel_2_helper2_event);
-			queue.enqueueNDRangeKernel(kernel_2_helper3, cl::NullRange, cl::NDRange(CH_elements), cl::NDRange(local_elements_16), NULL, &kernel_2_helper3_event);
+			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_event);
+			queue.enqueueNDRangeKernel(kernel2_helper1, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper1_event);
+			queue.enqueueNDRangeKernel(kernel2_helper2, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper2_event);
+			queue.enqueueNDRangeKernel(kernel2_helper3, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_helper3_event);
 		}
 		else if (mode_id == 0 && bin_count == 256)
-			queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(H_elements), cl::NDRange(256), NULL, &kernel_2_event); // TODO
+			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NDRange(local_elements_8), NULL, &kernel2_event);
 		else
-			queue.enqueueNDRangeKernel(kernel_2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel_2_event);
+			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel2_event);
 
-		queue.enqueueNDRangeKernel(kernel_3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel_3_event);
-		queue.enqueueNDRangeKernel(kernel_4, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel_4_event);
+		queue.enqueueNDRangeKernel(kernel3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel3_event);
+		queue.enqueueNDRangeKernel(kernel4, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel4_event);
 
 		// 5.3 Copy the result from device to host, print info to the console, and display the output image
 		// uncomment the line(s) needed when testing
@@ -342,29 +376,29 @@ int main(int argc, char **argv)
 			+ H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - H_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - CH_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 			+ LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - LUT_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total upload time of input vectors
-		cl_ulong kernel_1_time = kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // histogram kernel execution time
-		cl_ulong kernel_2_time = kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // cumulative histogram kernel execution time
-		cl_ulong total_kernel_time = kernel_1_time + kernel_2_time
-			+ kernel_3_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_3_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
-			+ kernel_4_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_4_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total execution time of kernels
+		cl_ulong kernel1_time = kernel1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // histogram kernel execution time
+		cl_ulong kernel2_time = kernel2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // cumulative histogram kernel execution time
+		cl_ulong total_kernel_time = kernel1_time + kernel2_time
+			+ kernel3_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel3_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+			+ kernel4_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel4_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total execution time of kernels
 		cl_ulong output_image_download_time = output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
 
 		if (mode_id == 0 && bin_count == 65536)
 		{
-			cl_ulong kernel_2_helper_time = kernel_2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
-				+ kernel_2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
-				+ kernel_2_helper3_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_2_helper3_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // cumulative histogram helper kernel execution time
+			cl_ulong kernel2_helper_time = kernel2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+				+ kernel2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
+				+ kernel2_helper3_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_helper3_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // cumulative histogram helper kernel execution time
 			total_upload_time += (BS_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - BS_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 				+ BS_scanned_input_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - BS_scanned_input_event.getProfilingInfo<CL_PROFILING_COMMAND_START>());
-			kernel_2_time += kernel_2_helper_time;
-			total_kernel_time += kernel_2_helper_time;
+			kernel2_time += kernel2_helper_time;
+			total_kernel_time += kernel2_helper_time;
 		} // end if
 
 		// display time in microseconds
 		std::cout << "Memory transfer time: " << total_upload_time / 1000 << " us" << std::endl;
 		std::cout << "Kernel execution time: " << total_kernel_time / 1000 << " us" << std::endl;
-		std::cout << "   Histogram kernel execution time: " << kernel_1_time / 1000 << " us" << std::endl;
-		std::cout << "   Cumulative histogram kernel execution time: " << kernel_2_time / 1000 << " us" << std::endl;
+		std::cout << "   Histogram kernel execution time: " << kernel1_time / 1000 << " us" << std::endl;
+		std::cout << "   Cumulative histogram kernel execution time: " << kernel2_time / 1000 << " us" << std::endl;
 		std::cout << "Program execution time: " << (total_upload_time + total_kernel_time + output_image_download_time) / 1000 << " us" << std::endl;
 
 		while (!input_image_display.is_closed() && !output_image_display.is_closed()
