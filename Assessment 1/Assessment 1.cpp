@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 		cl::Event kernel1_event, kernel2_event, kernel2_helper1_event, kernel2_helper2_event, kernel2_helper3_event, kernel3_event, kernel4_event; // add additional events to measure the execution time of each kernel
 
 		if (mode_id == 0 && bin_count == 256)
-			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(kernel1_global_elements_8), cl::NDRange(local_elements_8), NULL, &kernel1_event); // TODO
+			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(kernel1_global_elements_8), cl::NDRange(local_elements_8), NULL, &kernel1_event);
 		else
 			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel1_event);
 
