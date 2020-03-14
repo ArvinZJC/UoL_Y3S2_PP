@@ -19,4 +19,4 @@ This repository contains code written for practising the knowledge gained from t
 The following steps show a basic and suggested way to run an application.
 
 1. Build/Rebuild the solution.
-2. Using the command prompt, navigate to the directory containing your built project (e.g. `cd C:\SD\C++\UoL_Y3S2_PP\W1-8\x64\Debug\Tutorial 1`) and run the EXE file (e.g. `"Tutorial 1.exe"` - ".exe" can be omitted).
+2. Using the command prompt, navigate to the directory containing your built project (e.g. `cd C:\SD\C++\UoL_Y3S2_PP\x64\Debug\Tutorial 1`) and run the EXE file (e.g. `"Tutorial 1.exe"` - ".exe" can be omitted).
