@@ -20,10 +20,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="kernels\kernels_16.cl">
-      <Filter>kernels</Filter>
-    </None>
-    <None Include="kernels\kernels_8.cl">
+    <None Include="kernels\assessment1_kernels.cl">
       <Filter>kernels</Filter>
     </None>
   </ItemGroup>
