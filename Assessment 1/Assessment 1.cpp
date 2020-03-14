@@ -33,9 +33,10 @@ int main(int argc, char **argv)
 			std::cout << "      Compared to Basic Mode, program can consume less kernel execution time.\n" << std::endl;
 			std::cout << "   Mode 1, Fast Mode 2" << std::endl;
 			std::cout << "      Compared to Fast Mode 1, program may consume even less kernel execution time because of a different helper ";
-			std::cout << "kernel. This mode only takes effect on a 16-bit iamge and will be the same as Fast Mode 1 on an 8-bit image.\n" << std::endl;
+			std::cout << "kernel. This mode only takes effect on a 16-bit iamge and is the same as Fast Mode 1 on an 8-bit image.\n" << std::endl;
 			std::cout << "   Mode 2, Basic Mode" << std::endl;
-			std::cout << "      This mode has brilliant compatibility but may significantly consume more kernel execution time." << std::endl;
+			std::cout << "      For an 8-bit image, this mode has brilliant compatibility but may significantly consume more kernel execution ";
+			std::cout << "time. For a 16-bit image, this mode is the same as Fast Mode 1." << std::endl;
 			std::cout << "----------------------------------------------------------------" << std::endl;
 		}
 		else if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1)))
@@ -233,7 +234,7 @@ int main(int argc, char **argv)
 		queue.enqueueFillBuffer(buffer_CH, 0, 0, CH_size, NULL, &CH_input_event); // zero cumulative histogram buffer on device memory
 		queue.enqueueFillBuffer(buffer_LUT, 0, 0, LUT_size, NULL, &LUT_input_event); // zero LUT buffer on device memory
 
-		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
+		if (bin_count == 65536)
 		{
 			queue.enqueueFillBuffer(buffer_BS, 0, 0, BS_size, NULL, &BS_input_event); // zero block sum buffer on device memory
 
@@ -245,7 +246,7 @@ int main(int argc, char **argv)
 		cl::Kernel kernel1, kernel2, kernel2_helper1, kernel2_helper2, kernel2_helper3;
 
 		// use optimised versions if any
-		if (mode_id == 0 || mode_id == 1)
+		if (mode_id == 0 || mode_id == 1 || (mode_id == 2 && bin_count == 65536))
 		{
 			if (bin_count == 256)
 			{
@@ -272,7 +273,7 @@ int main(int argc, char **argv)
 				kernel2 = cl::Kernel(program, "get_CH_pro"); // Step 2.1: get a preliminary cumulative histogram
 				kernel2_helper1 = cl::Kernel(program, "get_BS"); // Step 2.2: get block sums of a preliminary cumulative histogram
 
-				if (mode_id == 0)
+				if (mode_id == 0 || mode_id == 2)
 				{
 					std::cout << std::endl;
 
@@ -298,7 +299,7 @@ int main(int argc, char **argv)
 
 				kernel2_helper2.setArg(0, buffer_BS);
 
-				if (mode_id == 0)
+				if (mode_id == 0 || mode_id == 2)
 					kernel2_helper3.setArg(0, buffer_BS_scanned);
 				else
 					kernel2_helper3.setArg(0, buffer_BS);
@@ -309,6 +310,8 @@ int main(int argc, char **argv)
 		// use basic versions
 		else
 		{
+			std::cout << "Using basic kernels" << std::endl;
+
 			// Step 1: get a histogram with a specified number of bins
 			if (bin_count == 256)
 				kernel1 = cl::Kernel(program, "get_H_8");
@@ -358,18 +361,21 @@ int main(int argc, char **argv)
 			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(kernel1_global_elements_8), cl::NDRange(local_elements_8), NULL, &kernel1_event);
 		else
 			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel1_event);
-
-		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
+		
+		if (bin_count == 256)
+		{
+			if (mode_id == 0 || mode_id == 1)
+				queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NDRange(local_elements_8), NULL, &kernel2_event);
+			else
+				queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel2_event);
+		}
+		else
 		{
 			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_event);
 			queue.enqueueNDRangeKernel(kernel2_helper1, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper1_event);
 			queue.enqueueNDRangeKernel(kernel2_helper2, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper2_event);
 			queue.enqueueNDRangeKernel(kernel2_helper3, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_helper3_event);
-		}
-		else if ((mode_id == 0 || mode_id == 1) && bin_count == 256)
-			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NDRange(local_elements_8), NULL, &kernel2_event);
-		else
-			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel2_event);
+		} // end if...else
 
 		queue.enqueueNDRangeKernel(kernel3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel3_event);
 		queue.enqueueNDRangeKernel(kernel4, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel4_event);
@@ -387,7 +393,7 @@ int main(int argc, char **argv)
 		// std::cout << "H = " << H << std::endl;
 		// std::cout << "CH = " << CH << std::endl;
 
-		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
+		if (bin_count == 65536)
 		{
 			queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &CH[0]);
 
@@ -444,7 +450,7 @@ int main(int argc, char **argv)
 			+ kernel4_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel4_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total execution time of kernels
 		cl_ulong output_image_download_time = output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
 
-		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
+		if (bin_count == 65536)
 		{
 			cl_ulong kernel2_helper_time = kernel2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 				+ kernel2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
