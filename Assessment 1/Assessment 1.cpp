@@ -1,6 +1,6 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.6.0.20200314
+ * @Version: 1.6.1.20200314
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -143,13 +143,15 @@ int main(int argc, char **argv)
 		} // end try...catch
 
 		// Part 4 - memory allocation
-		std::vector<int> H(bin_count, 0); // vector H for a histogram
-		size_t H_elements = H.size(); // number of elements
-		size_t H_size = H_elements * sizeof(int); // size in bytes
+		typedef unsigned int standard; // use "unsigned int" as the standard data type to avoid integer overflow when processing some large images
 
-		std::vector<int> CH(H_elements, 0); // vector CH for a cumulative histogram
+		std::vector<standard> H(bin_count, 0); // vector H for a histogram
+		size_t H_elements = H.size(); // number of elements
+		size_t H_size = H_elements * sizeof(standard); // size in bytes
+
+		std::vector<standard> CH(H_elements, 0); // vector CH for a cumulative histogram
 		size_t CH_elements = CH.size(); // number of elements
-		size_t CH_size = CH_elements * sizeof(int); // size in bytes
+		size_t CH_size = CH_elements * sizeof(standard); // size in bytes
 
 		/*
 		number of local elements when processing an 8-bit image;
@@ -158,7 +160,7 @@ int main(int argc, char **argv)
 		*/
 		size_t local_elements_8 = 256;
 
-		size_t local_size_8 = local_elements_8 * sizeof(int); // size in bytes
+		size_t local_size_8 = local_elements_8 * sizeof(standard); // size in bytes
 
 		/*
 		the following part adjusts the length of global elements of the histogram kernel for an 8-bit image;
@@ -183,7 +185,7 @@ int main(int argc, char **argv)
 		the value is basically not smaller than 256
 		*/
 		size_t local_elements_16 = max_work_item_sizes[0];
-		size_t local_size_16 = local_elements_16 * sizeof(int); // size in bytes
+		size_t local_size_16 = local_elements_16 * sizeof(standard); // size in bytes
 		size_t group_count = bin_count == 256 ? 1 : CH_elements / local_elements_16;
 
 		/*
@@ -203,14 +205,14 @@ int main(int argc, char **argv)
 		if (kernel2_global_elements_16_padding)
 			kernel2_global_elements_16 += (local_elements_16 - kernel2_global_elements_16_padding);
 
-		std::vector<int> BS(group_count, 0); // create a separate vector whose length is equal to the number of work groups to store the block sums
-		size_t BS_size = BS.size() * sizeof(int); // size in bytes
+		std::vector<standard> BS(group_count, 0); // create a separate vector whose length is equal to the number of work groups to store the block sums
+		size_t BS_size = BS.size() * sizeof(standard); // size in bytes
 
-		std::vector<int> BS_scanned(group_count, 0); // create a separate vector whose length is equal to the number of work groups to perform an exclusive scan on the block sums
-		size_t BS_scanned_size = BS_scanned.size() * sizeof(int); // size in bytes
+		std::vector<standard> BS_scanned(group_count, 0); // create a separate vector whose length is equal to the number of work groups to perform an exclusive scan on the block sums
+		size_t BS_scanned_size = BS_scanned.size() * sizeof(standard); // size in bytes
 		
-		std::vector<int> LUT(CH_elements, 0); // vector LUT for a normalised cumulative histogram which is used as a look-up table (LUT)
-		size_t LUT_size = LUT.size() * sizeof(int); // size in bytes
+		std::vector<standard> LUT(CH_elements, 0); // vector LUT for a normalised cumulative histogram which is used as a look-up table (LUT)
+		size_t LUT_size = LUT.size() * sizeof(standard); // size in bytes
 
 		// Part 5 - device operations
 		// device - buffers
@@ -256,7 +258,7 @@ int main(int argc, char **argv)
 				kernel2 = cl::Kernel(program, "get_CH_pro"); // Step 2: get a cumulative histogram
 				
 				kernel1.setArg(3, cl::Local(local_size_8)); // local memory size for a local histogram
-				kernel1.setArg(4, (int)input_image_elements);
+				kernel1.setArg(4, (standard)input_image_elements);
 
 				kernel2.setArg(2, cl::Local(local_size_8)); // local memory size for a local histogram
 				kernel2.setArg(3, cl::Local(local_size_8)); // local memory size for a cumulative histogram
@@ -344,12 +346,7 @@ int main(int argc, char **argv)
 		kernel3.setArg(0, buffer_CH);
 		kernel3.setArg(1, buffer_LUT);
 		kernel3.setArg(2, bin_count);
-
-		/*
-		the mask for normalising a cumulative histogram;
-		formula: max colour level (255 or 65535) / total pixels (width times height)
-		*/
-		kernel3.setArg(3, (float)(bin_count - 1) / (input_image_width * input_image_height));
+		kernel3.setArg(3, input_image_width * input_image_height); // the total number of pixels (width * height)
 		
 		kernel4.setArg(0, buffer_input_image);
 		kernel4.setArg(1, buffer_LUT);
