@@ -190,10 +190,14 @@ xcopy /s /i /y "images" "$(OutDir)images"</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="kernels\assessment1_kernels.cl" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\CImg.h" />
     <ClInclude Include="..\include\Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="application_usage.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

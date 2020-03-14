@@ -23,5 +23,9 @@
     <None Include="kernels\assessment1_kernels.cl">
       <Filter>kernels</Filter>
     </None>
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="application_usage.jpg" />
   </ItemGroup>
 </Project>
