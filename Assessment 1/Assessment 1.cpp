@@ -349,7 +349,7 @@ int main(int argc, char **argv)
 		the mask for normalising a cumulative histogram;
 		formula: max colour level (255 or 65535) / total pixels (width times height)
 		*/
-		kernel3.setArg(3, (float)(bin_count - 1) / (int)(input_image_elements / input_image.spectrum()));
+		kernel3.setArg(3, (float)(bin_count - 1) / (input_image_width * input_image_height));
 		
 		kernel4.setArg(0, buffer_input_image);
 		kernel4.setArg(1, buffer_LUT);
