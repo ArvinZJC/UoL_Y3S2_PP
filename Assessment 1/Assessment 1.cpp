@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.7.0.20200318
+ * @Version: 1.7.1.20200318
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-18 12:03:15
+ * @LastEditTime: 2020-03-18 13:03:15
  */
 
 #include <iostream>
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 			display the input 16-bit image;
 			resize to provide a better view when necessary (this does not affect the input image data for processing)
 			*/
-			input_image_display.assign(CImg<unsigned char>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (16-bit)");
+			input_image_display.assign(CImg<unsigned short>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (16-bit)");
 		
 		// Part 3 - host operations
 		// 3.1 Select computing devices
@@ -391,13 +391,13 @@ int main(int argc, char **argv)
 		{
 			queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &CH[0]);
 
-			std::cout << "BS = " << BS << std::endl;
+			//std::cout << "BS = " << BS << std::endl;
 
 			if (mode_id == 0)
 			{
 				queue.enqueueReadBuffer(buffer_BS_scanned, CL_TRUE, 0, BS_scanned_size, &CH[0]);
 
-				std::cout << "BS_scanned = " << BS_scanned << std::endl;
+				//std::cout << "BS_scanned = " << BS_scanned << std::endl;
 			} // end if
 		} // end if
 		
@@ -416,9 +416,9 @@ int main(int argc, char **argv)
 
 			/*
 			display the output 8-bit image;
-			resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
+			resize to provide a better view when necessary
 			*/
-			output_image_display.assign(CImg<unsigned char>(output_image_8).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (8-bit)");
+			output_image_display.assign(output_image_8.resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (8-bit)");
 		}
 		else
 		{
@@ -429,9 +429,9 @@ int main(int argc, char **argv)
 
 			/*
 			display the output 16-bit image;
-			resize to provide a better view when necessary (this does not affect the output image data read from the buffer)
+			resize to provide a better view when necessary
 			*/
-			output_image_display.assign(CImg<unsigned char>(output_image_16).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (16-bit)");
+			output_image_display.assign(output_image_16.resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Output image (16-bit)");
 		} // end if...else
 
 		cl_ulong total_upload_time = input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - input_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
