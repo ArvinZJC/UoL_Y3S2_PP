@@ -1,10 +1,10 @@
 /*
  * @Description: kernel code file for applying histogram equalisation on an RGB image (8-bit/16-bit)
- * @Version: 1.6.2.20200314
+ * @Version: 1.7.0.20200318
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-14 12:07:31
+ * @LastEditTime: 2020-03-18 12:07:31
  */
 
 /*
@@ -14,12 +14,6 @@ the sum of the elements should be equal to the total number of pixels
 kernel void get_H_8(global const uchar* image, global uint* H, const int bin_count)
 {
 	uint id = get_global_id(0);
-	
-	// initialise the histogram to 0
-	if (id < bin_count)
-		H[id] = 0;
-
-	barrier(CLK_GLOBAL_MEM_FENCE); // wait for all threads to finish the initialisation
 
 	/*
 	compute the histogram;
@@ -36,11 +30,7 @@ kernel void get_H_16(global const ushort* image, global uint* H, const int bin_c
 {
 	uint id = get_global_id(0);
 	
-	// initialise the histogram to 0
-	if (id < bin_count)
-		H[id] = 0;
-
-	barrier(CLK_GLOBAL_MEM_FENCE); // wait for all threads to finish the initialisation
+	
 	
 	/*
 	compute the histogram;
@@ -50,7 +40,7 @@ kernel void get_H_16(global const ushort* image, global uint* H, const int bin_c
 } // end function get_H_16
 
 /*
-get a histogram with a specified number of bins (optimised version - local memory is used);
+get a histogram of an 8-bit image with a specified number of bins (optimised version - local memory is used);
 the sum of the elements should be equal to the total number of pixels
 */
 kernel void get_H_pro(global const uchar* image, global uint* H, const int bin_count, local uint* H_local, const uint image_elements)
@@ -216,7 +206,7 @@ kernel void get_lut(global const uint* CH, global uint* LUT, const int bin_count
 	int id = get_global_id(0);
 
 	if (id < bin_count)
-		LUT[id] = CH[id] * (bin_count - 1) / pixel_count;
+		LUT[id] = ((ulong)CH[id] * (bin_count - 1)) / pixel_count; // use "ulong" to avoid integer overflow
 } // end function get_lut
 
 // get the output 8-bit image according to the LUT

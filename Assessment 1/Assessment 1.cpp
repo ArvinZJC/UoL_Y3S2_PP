@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.6.1.20200314
+ * @Version: 1.7.0.20200318
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-14 12:03:15
+ * @LastEditTime: 2020-03-18 12:03:15
  */
 
 #include <iostream>
@@ -378,34 +378,32 @@ int main(int argc, char **argv)
 		queue.enqueueNDRangeKernel(kernel4, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel4_event);
 
 		// 5.3 Copy the result from device to host, print info to the console, and display the output image
+		/*
 		// uncomment the following section when testing
 		queue.enqueueReadBuffer(buffer_H, CL_TRUE, 0, H_size, &H[0]);
-		int test = 0;
-		for (int i = 0; i < H.size(); i++)
-			test += H[i];
-		std::cout << test << "/" << input_image_elements << std::endl; // TODO
 		queue.enqueueReadBuffer(buffer_CH, CL_TRUE, 0, CH_size, &CH[0]);
 		queue.enqueueReadBuffer(buffer_LUT, CL_TRUE, 0, LUT_size, &LUT[0]);
 
-		// std::cout << "H = " << H << std::endl;
-		// std::cout << "CH = " << CH << std::endl;
+		std::cout << "H = " << H << std::endl;
+		std::cout << "CH = " << CH << std::endl;
 
 		if (bin_count == 65536)
 		{
 			queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &CH[0]);
 
-			// std::cout << "BS = " << BS << std::endl;
+			std::cout << "BS = " << BS << std::endl;
 
 			if (mode_id == 0)
 			{
 				queue.enqueueReadBuffer(buffer_BS_scanned, CL_TRUE, 0, BS_scanned_size, &CH[0]);
 
-				// std::cout << "BS_scanned = " << BS_scanned << std::endl;
+				std::cout << "BS_scanned = " << BS_scanned << std::endl;
 			} // end if
 		} // end if
 		
-		// std::cout << "LUT = " << LUT << std::endl;
-		
+		std::cout << "LUT = " << LUT << std::endl;
+		*/
+
 		cl::Event output_image_event; // add additional events to measure the download time of each output vector
 		CImgDisplay output_image_display;
 
