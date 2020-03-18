@@ -141,7 +141,7 @@ kernel void reduce_add_5(global const int* A, global int* B, local int* scratch)
 } // end function reduce_add_5
 
 // a very simple histogram implementation
-kernel void hist_1(global const int* A, global int* H)
+kernel void hist(global const int* A, global int* H)
 { 
 	int id = get_global_id(0);
 	int bin_index = A[id]; // take value as a bin index
@@ -149,19 +149,7 @@ kernel void hist_1(global const int* A, global int* H)
 	// assume that H has been initialised to 0;
 
 	atomic_inc(&H[bin_index]); // serial operation, not very efficient
-} // end function hist_1
-
-// a simple histogram implementation considering the number of bins
-kernel void hist_2(global const int* A, global int* H, int nr_bins)
-{
-	int id = get_global_id(0);
-	int bin_index = A[id]; // take value as a bin index
-
-	if (id < nr_bins)
-		H[id] = 0;
-
-	atomic_inc(&H[bin_index]);
-} // end function hist_2
+} // end function hist
 
 /*
 Hillis-Steele basic inclusive scan;

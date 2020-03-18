@@ -122,15 +122,13 @@ int main(int argc, char **argv)
 		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_3"); // reduce using local memory and interleaved addressing to be faster compared to operate directly on global memory (Task4U-1 of Section 1.2)
 		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_4"); // reduce using local memory + accumulation of local sums into a single location and interleaved addressing (Task4U-2 of Section 1.2)
 		// cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_5"); // reduce using local memory + accumulation of local sums into a single location and sequential addressing (Task4U-3 of Section 1.2)
-		// cl::Kernel kernel_1 = cl::Kernel(program, "hist_1"); // a very simple histogram implementation (the introduction of Section 2.1)
-		// cl::Kernel kernel_1 = cl::Kernel(program, "hist_2"); // a simple histogram implementation considering the number of bins (Task4U-1 of Section 2.1)
+		// cl::Kernel kernel_1 = cl::Kernel(program, "hist"); // a very simple histogram implementation (the introduction of Section 2.1)
 		// cl::Kernel kernel_1 = cl::Kernel(program, "scan_hs"); // Hillis-Steele basic inclusive scan (the introduction of Section 3)
 		cl::Kernel kernel_1 = cl::Kernel(program, "scan_add"); // a double-buffered version of the Hillis-Steele inclusive scan (Task4U-1 of Section 3)
 
 		kernel_1.setArg(0, buffer_A);
 		kernel_1.setArg(1, buffer_B);
 		kernel_1.setArg(2, cl::Local(local_size * sizeof(mytype))); // local memory size (uncomment this in Section 1.2 and Task 4U-1 of Section 3)
-		// kernel_1.setArg(2, (int)B.size()); // the number of bins (uncomment this in Task4U-1 of Section 2.1)
 		kernel_1.setArg(3, cl::Local(local_size * sizeof(mytype))); // local memory size (uncomment this in Task4U-1 of Section 3)
 
 		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_elements), cl::NDRange(local_size)); // call all kernels in a sequence
