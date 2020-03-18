@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.7.1.20200318
+ * @Version: 1.7.2.20200318
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-18 13:03:15
+ * @LastEditTime: 2020-03-18 13:33:15
  */
 
 #include <iostream>
@@ -257,8 +257,8 @@ int main(int argc, char **argv)
 				kernel1 = cl::Kernel(program, "get_H_pro"); // Step 1: get a histogram with a specified number of bins
 				kernel2 = cl::Kernel(program, "get_CH_pro"); // Step 2: get a cumulative histogram
 				
-				kernel1.setArg(3, cl::Local(local_size_8)); // local memory size for a local histogram
-				kernel1.setArg(4, (standard)input_image_elements);
+				kernel1.setArg(2, cl::Local(local_size_8)); // local memory size for a local histogram
+				kernel1.setArg(3, (standard)input_image_elements);
 
 				kernel2.setArg(2, cl::Local(local_size_8)); // local memory size for a local histogram
 				kernel2.setArg(3, cl::Local(local_size_8)); // local memory size for a cumulative histogram
@@ -338,7 +338,6 @@ int main(int argc, char **argv)
 
 		kernel1.setArg(0, buffer_input_image);
 		kernel1.setArg(1, buffer_H);
-		kernel1.setArg(2, bin_count);
 
 		kernel2.setArg(0, buffer_H);
 		kernel2.setArg(1, buffer_CH);
@@ -391,13 +390,13 @@ int main(int argc, char **argv)
 		{
 			queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &CH[0]);
 
-			//std::cout << "BS = " << BS << std::endl;
+			std::cout << "BS = " << BS << std::endl;
 
 			if (mode_id == 0)
 			{
 				queue.enqueueReadBuffer(buffer_BS_scanned, CL_TRUE, 0, BS_scanned_size, &CH[0]);
 
-				//std::cout << "BS_scanned = " << BS_scanned << std::endl;
+				std::cout << "BS_scanned = " << BS_scanned << std::endl;
 			} // end if
 		} // end if
 		

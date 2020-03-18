@@ -1,17 +1,17 @@
 /*
  * @Description: kernel code file for applying histogram equalisation on an RGB image (8-bit/16-bit)
- * @Version: 1.7.0.20200318
+ * @Version: 1.7.1.20200318
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-18 12:07:31
+ * @LastEditTime: 2020-03-18 13:07:31
  */
 
 /*
 get a histogram of an 8-bit iamge with a specified number of bins (basic version);
 the sum of the elements should be equal to the total number of pixels
 */
-kernel void get_H_8(global const uchar* image, global uint* H, const int bin_count)
+kernel void get_H_8(global const uchar* image, global uint* H)
 {
 	uint id = get_global_id(0);
 
@@ -26,12 +26,10 @@ kernel void get_H_8(global const uchar* image, global uint* H, const int bin_cou
 get a histogram of a 16-bit image with a specified number of bins;
 the sum of the elements should be equal to the total number of pixels
 */
-kernel void get_H_16(global const ushort* image, global uint* H, const int bin_count)
+kernel void get_H_16(global const ushort* image, global uint* H)
 {
 	uint id = get_global_id(0);
-	
-	
-	
+
 	/*
 	compute the histogram;
 	take a value from the input image as a bin index of the histogram
@@ -43,13 +41,13 @@ kernel void get_H_16(global const ushort* image, global uint* H, const int bin_c
 get a histogram of an 8-bit image with a specified number of bins (optimised version - local memory is used);
 the sum of the elements should be equal to the total number of pixels
 */
-kernel void get_H_pro(global const uchar* image, global uint* H, const int bin_count, local uint* H_local, const uint image_elements)
+kernel void get_H_pro(global const uchar* image, global uint* H, local uint* H_local, const uint image_elements)
 {
 	uint id = get_global_id(0);
 	int local_id = get_local_id(0);
 
 	// initialise the local histogram to 0
-	if (local_id < bin_count)
+	if (local_id < 256)
 		H_local[local_id] = 0;
 
 	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish the initialisation
@@ -64,7 +62,7 @@ kernel void get_H_pro(global const uchar* image, global uint* H, const int bin_c
 	barrier(CLK_LOCAL_MEM_FENCE); // wait for all local threads to finish computing the local histogram
 
 	// write the local histogram out to the global histogram
-	if (local_id < bin_count)
+	if (local_id < 256)
 		atomic_add(&H[local_id], H_local[local_id]);
 } // end function get_H_pro
 
