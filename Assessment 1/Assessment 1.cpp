@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.7.2.20200318
+ * @Version: 1.7.3.20200321
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-18 13:33:15
+ * @LastEditTime: 2020-03-21 13:33:15
  */
 
 #include <iostream>
@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 	int platform_id = 0;
 	int device_id = 0;
 	int mode_id = 0;
-	string image_filename = "test";
+	string image_filename = "test.ppm";
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -57,10 +57,9 @@ int main(int argc, char **argv)
 			std::cerr << "  -d : select device" << std::endl;
 			std::cerr << "  -m : select run mode" << std::endl;
 			std::cerr << "  -f : specify input image file" << std::endl;
-			std::cerr << "       ATTENTION: 1. \"test\" referring to \"test.ppm\" is default" << std::endl;
-			std::cerr << "                  2. Only a PPM image file (8-bit/16-bit) is accepted" << std::endl;
-			std::cerr << "                  3. When using this option, please only enter the filename without the extension (e.g. test)" << std::endl;
-			std::cerr << "                  4. The specified image should be put under the folder \"images\"" << std::endl;
+			std::cerr << "       ATTENTION: 1. \"test.ppm\" is default" << std::endl;
+			std::cerr << "                  2. Please select a PPM image file (8-bit/16-bit RGB)" << std::endl;
+			std::cerr << "                  3. The specified image should be put under the folder \"images\"" << std::endl;
 			std::cerr << "  -h : print this message" << std::endl;
 			return 0;
 		} // end nested if...else
@@ -72,7 +71,7 @@ int main(int argc, char **argv)
 		return 0;
 	} // end if
 
-	string image_path = "images\\" + image_filename + ".ppm";
+	string image_path = "images\\" + image_filename;
 
 	cimg::exception_mode(0);
 

@@ -1,6 +1,6 @@
 # [UoL_Y3S2_PP](https://github.com/ArvinZJC/UoL_Y3S2_PP)/Assessment 1
 
-The project is named as **Assessment 1** which contains a simple digital image enhancement tool as Assessment 1 of the course **Parallel Programming** during Semester 2 of Year 3 of BSc (Hons) Computer Science in UoL. It can basically apply image histogram equalisation on an RGB image (8-bit/16-bit). Info of test images is detailed in Table 1.
+The project is named as **Assessment 1** which contains a simple digital image enhancement tool as Assessment 1 of the course **Parallel Programming** during Semester 2 of Year 3 of BSc (Hons) Computer Science in UoL. It can basically apply image histogram equalisation on a PPM image (8-bit/16-bit RGB). Info of test images is detailed in Table 1.
 
 | Name | Bit depth | Width (px) | Height (px) | Spectrum |
 | :-- | --: | --: | --: | --: |
@@ -21,5 +21,6 @@ The following steps show a basic and suggested way to run an application.
 
 1. Build/Rebuild the solution.
 2. Using the command prompt, navigate to the directory containing your built project (e.g. `cd C:\SD\C++\UoL_Y3S2_PP\x64\Debug\Assessment 1`) and run the EXE file (e.g. `"Assessment 1.exe"` - ".exe" can be omitted).
-3. Figure 1 shows application usage using command line options.
+3. Figure 1 shows application usage using command line options and Figure 2 presents the available run modes.
 ![application_usage.jpg](application_usage.jpg "Application usage using command line options.")Figure 1
+![run_modes.jpg](run_modes.jpg "Available run modes.")Figure 2

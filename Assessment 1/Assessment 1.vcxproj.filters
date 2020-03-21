@@ -27,5 +27,6 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="application_usage.jpg" />
+    <Image Include="run_modes.jpg" />
   </ItemGroup>
 </Project>
