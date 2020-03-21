@@ -1,6 +1,6 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.7.3.20200321
+ * @Version: 1.7.4.20200321
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -25,6 +25,7 @@ int main(int argc, char **argv)
 
 	for (int i = 1; i < argc; i++)
 	{
+		// run the program according to the command line options
 		if (strcmp(argv[i], "-l") == 0)
 		{
 			std::cout << ListPlatformsDevices();
@@ -65,9 +66,10 @@ int main(int argc, char **argv)
 		} // end nested if...else
 	} // end for
 
+	// check if the run mode ID is valid
 	if (mode_id != 0 && mode_id != 1 && mode_id != 2)
 	{
-		std::cout << "Program - ERROR: Inexistent mode ID." << std::endl;
+		std::cout << "Program - ERROR: Inexistent run mode ID." << std::endl;
 		return 0;
 	} // end if
 
@@ -87,6 +89,7 @@ int main(int argc, char **argv)
 		int bin_count = input_image.max() <= 255 ? 256 : 65536; // bin numbers of an image (8-bit: 256, 16-bit: 65536)
 		float scale = 1.0f; // the scale for displaying an image
 		
+		// set the scale for resizing when the image expands the standard
 		if (input_image_width > 1024)
 			scale = 1000.0f / input_image_width;
 		else if (input_image_height > 768)
