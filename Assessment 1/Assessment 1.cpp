@@ -1,6 +1,6 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.8.0.20200321
+ * @Version: 1.8.1.20200321
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 		max_work_item_sizes = devices[device_id].getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
 
 		/*
-		get the max work item sizes for the x dimension as the number of local elements when processing a 16-bit image;
+		get the max work item size for the x dimension as the number of local elements when processing a 16-bit image;
 		the value is basically not smaller than 256
 		*/
 		size_t local_elements_16 = max_work_item_sizes[0];
