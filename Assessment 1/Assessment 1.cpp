@@ -1,6 +1,6 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.7.4.20200321
+ * @Version: 1.8.0.20200321
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -36,8 +36,7 @@ int main(int argc, char **argv)
 			std::cout << "      Compared to Fast Mode 1, program may consume even less kernel execution time because of a different helper ";
 			std::cout << "kernel. This mode only takes effect on a 16-bit iamge and is the same as Fast Mode 1 on an 8-bit image.\n" << std::endl;
 			std::cout << "   Mode 2, Basic Mode" << std::endl;
-			std::cout << "      For an 8-bit image, this mode has brilliant compatibility but may significantly consume more kernel execution ";
-			std::cout << "time. For a 16-bit image, this mode is the same as Fast Mode 1." << std::endl;
+			std::cout << "      This mode has brilliant compatibility but may significantly consume more kernel execution time." << std::endl;
 			std::cout << "----------------------------------------------------------------" << std::endl;
 		}
 		else if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1)))
@@ -250,7 +249,7 @@ int main(int argc, char **argv)
 		cl::Kernel kernel1, kernel2, kernel2_helper1, kernel2_helper2, kernel2_helper3;
 
 		// use optimised versions if any
-		if (mode_id == 0 || mode_id == 1 || (mode_id == 2 && bin_count == 65536))
+		if (mode_id == 0 || mode_id == 1)
 		{
 			if (bin_count == 256)
 			{
@@ -360,20 +359,17 @@ int main(int argc, char **argv)
 		else
 			queue.enqueueNDRangeKernel(kernel1, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel1_event);
 		
-		if (bin_count == 256)
-		{
-			if (mode_id == 0 || mode_id == 1)
-				queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NDRange(local_elements_8), NULL, &kernel2_event);
-			else
-				queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel2_event);
-		}
-		else
+		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
 		{
 			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_event);
 			queue.enqueueNDRangeKernel(kernel2_helper1, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper1_event);
 			queue.enqueueNDRangeKernel(kernel2_helper2, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper2_event);
 			queue.enqueueNDRangeKernel(kernel2_helper3, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_helper3_event);
-		} // end if...else
+		}
+		else if ((mode_id == 0 || mode_id == 1) && bin_count == 256)
+			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NDRange(local_elements_8), NULL, &kernel2_event);
+		else
+			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(H_elements), cl::NullRange, NULL, &kernel2_event);
 
 		queue.enqueueNDRangeKernel(kernel3, cl::NullRange, cl::NDRange(CH_elements), cl::NullRange, NULL, &kernel3_event);
 		queue.enqueueNDRangeKernel(kernel4, cl::NullRange, cl::NDRange(input_image_elements), cl::NullRange, NULL, &kernel4_event);
@@ -388,7 +384,7 @@ int main(int argc, char **argv)
 		std::cout << "H = " << H << std::endl;
 		std::cout << "CH = " << CH << std::endl;
 
-		if (bin_count == 65536)
+		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
 		{
 			queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &CH[0]);
 
@@ -446,7 +442,7 @@ int main(int argc, char **argv)
 			+ kernel4_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel4_event.getProfilingInfo<CL_PROFILING_COMMAND_START>(); // total execution time of kernels
 		cl_ulong output_image_download_time = output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - output_image_event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
 
-		if (bin_count == 65536)
+		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
 		{
 			cl_ulong kernel2_helper_time = kernel2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_helper1_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
 				+ kernel2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel2_helper2_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()
