@@ -173,19 +173,15 @@ int main(int argc, char **argv)
 		if (kernel1_global_elements_8_padding)
 			kernel1_global_elements_8 += (local_elements_8 - kernel1_global_elements_8_padding);
 
-		// the following part gets the max work item sizes of the device
-		vector<cl::Platform> platforms;
-		vector<cl::Device> devices;
-		vector<size_t> max_work_item_sizes;
-		cl::Platform::get(&platforms);
-		platforms[platform_id].getDevices(CL_DEVICE_TYPE_ALL, &devices);
-		max_work_item_sizes = devices[device_id].getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
-
 		/*
-		get the max work item size for the x dimension as the number of local elements when processing a 16-bit image;
+		get the max work group size as the number of local elements when processing a 16-bit image;
 		the value is basically not smaller than 256
 		*/
-		size_t local_elements_16 = max_work_item_sizes[0];
+		vector<cl::Platform> platforms;
+		vector<cl::Device> devices;
+		cl::Platform::get(&platforms);
+		platforms[platform_id].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+		size_t local_elements_16 = devices[device_id].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
 		size_t local_size_16 = local_elements_16 * sizeof(standard); // size in bytes
 		size_t group_count = bin_count == 256 ? 1 : CH_elements / local_elements_16;
 
