@@ -26,7 +26,7 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="application_usage.jpg" />
     <Image Include="run_modes.jpg" />
+    <Image Include="application_usage.jpg" />
   </ItemGroup>
 </Project>

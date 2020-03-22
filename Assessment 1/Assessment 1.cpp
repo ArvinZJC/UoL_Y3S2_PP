@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.8.1.20200321
+ * @Version: 1.9.0.20200322
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-21 13:33:15
+ * @LastEditTime: 2020-03-22 13:33:15
  */
 
 #include <iostream>
@@ -173,15 +173,7 @@ int main(int argc, char **argv)
 		if (kernel1_global_elements_8_padding)
 			kernel1_global_elements_8 += (local_elements_8 - kernel1_global_elements_8_padding);
 
-		/*
-		get the max work group size as the number of local elements when processing a 16-bit image;
-		the value is basically not smaller than 256
-		*/
-		vector<cl::Platform> platforms;
-		vector<cl::Device> devices;
-		cl::Platform::get(&platforms);
-		platforms[platform_id].getDevices(CL_DEVICE_TYPE_ALL, &devices);
-		size_t local_elements_16 = devices[device_id].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
+		size_t local_elements_16 = cl::Kernel(program, "get_CH_pro").getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(context.getInfo<CL_CONTEXT_DEVICES>()[0]); // get the max kernel workgroup size as the number of local elements when processing a 16-bit image
 		size_t local_size_16 = local_elements_16 * sizeof(standard); // size in bytes
 		size_t group_count = bin_count == 256 ? 1 : CH_elements / local_elements_16;
 
@@ -271,7 +263,7 @@ int main(int argc, char **argv)
 
 				kernel2 = cl::Kernel(program, "get_CH_pro"); // Step 2.1: get a preliminary cumulative histogram
 				kernel2_helper1 = cl::Kernel(program, "get_BS"); // Step 2.2: get block sums of a preliminary cumulative histogram
-
+				
 				if (mode_id == 0 || mode_id == 2)
 				{
 					std::cout << std::endl;
