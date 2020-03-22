@@ -1,6 +1,6 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.9.1.20200322
+ * @Version: 1.9.2.20200322
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 		return 0;
 	} // end if
 
-	string image_path = "images\\" + image_filename;
+	string image_path = "images/" + image_filename;
 
 	cimg::exception_mode(0);
 
@@ -94,6 +94,9 @@ int main(int argc, char **argv)
 		else if (input_image_height > 768)
 			scale = 750.0f / input_image_height;
 
+		if (scale != 1.0f)
+			std::cout << "ATTENTION: Large input and output images are resized to provide a better view. This does NOT modify the input image data for processing.\n" << std::endl;
+
 		CImgDisplay input_image_display;
 
 		// use proper data type to save memory transfer time
@@ -104,14 +107,14 @@ int main(int argc, char **argv)
 
 			/*
 			display the input 16-bit image;
-			resize to provide a better view when necessary (this does not affect the input image data for processing)
+			resize to provide a better view when necessary (this does not modify the input image data for processing)
 			*/
 			input_image_display.assign(CImg<unsigned char>(input_image_8).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (8-bit)");
 		} // end if
 		else
 			/*
 			display the input 16-bit image;
-			resize to provide a better view when necessary (this does not affect the input image data for processing)
+			resize to provide a better view when necessary (this does not modify the input image data for processing)
 			*/
 			input_image_display.assign(CImg<unsigned short>(input_image).resize((int)(input_image_width * scale), (int)(input_image_height * scale)), "Input image (16-bit)");
 		
@@ -314,7 +317,7 @@ int main(int argc, char **argv)
 			kernel2.setArg(2, bin_count);
 		} // end if...else
 
-		std::cout << "----------------------------------------------------------------" << std::endl;
+		std::cout << std::endl; // leave a blank line to provide a better console output format
 		
 		cl::Kernel kernel3 = cl::Kernel(program, "get_lut"); // Step 3: get a normalised cumulative histogram as an LUT
 		cl::Kernel kernel4;

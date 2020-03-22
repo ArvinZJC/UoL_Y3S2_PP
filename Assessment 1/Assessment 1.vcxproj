@@ -186,9 +186,6 @@ xcopy /s /i /y "images" "$(OutDir)images"</Command>
     <Intel_OpenCL_Build_Rules Include="my_kernels_2.cl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Assessment 1.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="kernels\assessment1_kernels.cl" />
     <None Include="README.md" />
   </ItemGroup>
@@ -199,6 +196,9 @@ xcopy /s /i /y "images" "$(OutDir)images"</Command>
   <ItemGroup>
     <Image Include="application_usage.jpg" />
     <Image Include="run_modes.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Assessment 1.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
