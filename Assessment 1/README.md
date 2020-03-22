@@ -1,6 +1,6 @@
 # [UoL_Y3S2_PP](https://github.com/ArvinZJC/UoL_Y3S2_PP)/Assessment 1
 
-The project is named as **Assessment 1** which contains a simple digital image enhancement tool as Assessment 1 of the course **Parallel Programming** during Semester 2 of Year 3 of BSc (Hons) Computer Science in UoL. It can basically apply image histogram equalisation on a PPM image (8-bit/16-bit RGB). Info of test images is detailed in Table 1.
+The project is named as **Assessment 1** which contains a simple digital image enhancement tool as Assessment 1 of the course **Parallel Programming** during Semester 2 of Year 3 of BSc (Hons) Computer Science in UoL. It can basically apply image histogram equalisation on a PPM image (8-bit/16-bit RGB). Info of test images is detailed in Table 1. For more info on the project, turn to the relevant summary of code.
 
 | Name | Bit depth | Width (px) | Height (px) | Spectrum |
 | :-- | --: | --: | --: | --: |
