@@ -1,6 +1,6 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.9.0.20200322
+ * @Version: 1.9.1.20200322
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
@@ -374,13 +374,13 @@ int main(int argc, char **argv)
 
 		if ((mode_id == 0 || mode_id == 1) && bin_count == 65536)
 		{
-			queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &CH[0]);
+			queue.enqueueReadBuffer(buffer_BS, CL_TRUE, 0, BS_size, &BS[0]);
 
 			std::cout << "BS = " << BS << std::endl;
 
 			if (mode_id == 0)
 			{
-				queue.enqueueReadBuffer(buffer_BS_scanned, CL_TRUE, 0, BS_scanned_size, &CH[0]);
+				queue.enqueueReadBuffer(buffer_BS_scanned, CL_TRUE, 0, BS_scanned_size, &BS_scanned[0]);
 
 				std::cout << "BS_scanned = " << BS_scanned << std::endl;
 			} // end if
