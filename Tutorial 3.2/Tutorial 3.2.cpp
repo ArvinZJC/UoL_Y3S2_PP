@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 			A.insert(A.end(), A_ext.begin(), A_ext.end()); // append that extra vector to our input
 		} // end if
 
-		size_t A_elements = A.size(); // number of elements of Vector A
+		size_t A_elements = A.size(); // number of elements in Vector A
 		size_t A_size = A_elements * sizeof(mytype); // size in bytes
 		size_t nr_groups = A_elements / local_size;
 
