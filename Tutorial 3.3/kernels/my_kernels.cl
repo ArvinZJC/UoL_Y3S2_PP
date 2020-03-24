@@ -1,6 +1,7 @@
 /*
 Blelloch basic exclusive scan;
-the following implementation has a limitation that the size of A must be a multiple of 4
+the following implementation has a limitation that the size of A must be a power of 2;
+please note that this implementation only works within a single workgroup as it uses barriers
 */
 kernel void scan_bl(global int* A)
 {

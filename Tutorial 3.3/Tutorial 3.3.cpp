@@ -67,8 +67,8 @@ int main(int argc, char **argv)
 		typedef int mytype;
 
 		// Part 3 - memory allocation
-		std::vector<mytype> A(8, 1); // allocate 8 elements with an initial value 1
-		size_t A_elements = A.size(); // number of elements of Vector A
+		std::vector<mytype> A(16, 1); // allocate 16 elements with an initial value 1
+		size_t A_elements = A.size(); // number of elements in Vector A
 		size_t A_size = A_elements * sizeof(mytype); // size in bytes
 
 		cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, A_size); // device - buffers
@@ -82,7 +82,11 @@ int main(int argc, char **argv)
 
 		kernel_1.setArg(0, buffer_A);
 
-		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(A_elements), cl::NullRange); // call all kernels in a sequence
+		/*
+		call the kernel;
+		set the workgroup size to the number of elements in Vector A to ensure only one workgroup
+		*/
+		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(A_elements), cl::NDRange(A_elements));
 
 		// 4.3 Copy the result from device to host
 		std::cout << "A = " << A << std::endl;
