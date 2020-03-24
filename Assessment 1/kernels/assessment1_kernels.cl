@@ -148,7 +148,8 @@ kernel void get_scanned_BS_1(global const uint* BS, global uint* BS_scanned)
 /*
 get scanned block sums by performing an exclusive scan (a version using Blelloch exclusive scan);
 a helper kernel of the kernel for getting a cumulative histogram;
-the following implementation has a limitation that the size of BS must be a multiple of 4
+the following implementation has a limitation that the size of BS must be a power of 2;
+please note that this implementation only works within a single workgroup as it uses barriers
 */
 kernel void get_scanned_BS_2(global uint* BS)
 {

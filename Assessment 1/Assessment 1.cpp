@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 1.9.2.20200322
+ * @Version: 2.0.0.20200324
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-22 13:33:15
+ * @LastEditTime: 2020-03-24 13:33:15
  */
 
 #include <iostream>
@@ -183,9 +183,9 @@ int main(int argc, char **argv)
 		/*
 		avoid wrong results caused by an optimised cumulative histogram helper kernel due to its limitation;
 		this is affected by the number of local elements when processing a 16-bit image;
-		since the number is basically a multiple of 4, the limitation is seldom reached
+		the limitation is seldom reached as the number is basically a power of 2 and the number of elements in vector CH is 2 to the power of 16
 		*/
-		mode_id = (mode_id == 1 && bin_count == 65536 && group_count % 4 != 0) ? 0 : mode_id;
+		mode_id = (mode_id == 1 && bin_count == 65536 && (group_count & (group_count - 1))) ? 0 : mode_id;
 
 		/*
 		the following part adjusts the length of global elements of the cumulative histogram kernel for a 16-bit image;
@@ -354,7 +354,12 @@ int main(int argc, char **argv)
 		{
 			queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_event);
 			queue.enqueueNDRangeKernel(kernel2_helper1, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper1_event);
-			queue.enqueueNDRangeKernel(kernel2_helper2, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper2_event);
+
+			if (mode_id == 0)
+				queue.enqueueNDRangeKernel(kernel2_helper2, cl::NullRange, cl::NDRange(group_count), cl::NullRange, NULL, &kernel2_helper2_event);
+			else
+				queue.enqueueNDRangeKernel(kernel2_helper2, cl::NullRange, cl::NDRange(group_count), cl::NDRange(group_count), NULL, &kernel2_helper2_event); // set the workgroup size to the number of groups to ensure only one workgroup
+
 			queue.enqueueNDRangeKernel(kernel2_helper3, cl::NullRange, cl::NDRange(kernel2_global_elements_16), cl::NDRange(local_elements_16), NULL, &kernel2_helper3_event);
 		}
 		else if ((mode_id == 0 || mode_id == 1) && bin_count == 256)
