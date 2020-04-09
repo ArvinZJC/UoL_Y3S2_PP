@@ -1,10 +1,10 @@
 /*
  * @Description: host code file of the tool applying histogram equalisation on a specified RGB image (8-bit/16-bit)
- * @Version: 2.0.0.20200324
+ * @Version: 2.0.1.20200409
  * @Author: Arvin Zhao
  * @Date: 2020-03-08 15:29:21
  * @Last Editors: Arvin Zhao
- * @LastEditTime: 2020-03-24 13:33:15
+ * @LastEditTime: 2020-04-09 13:33:15
  */
 
 #include <iostream>
@@ -15,6 +15,10 @@
 
 using namespace cimg_library;
 
+/*
+Please note that this is NOT the summary required. Please refer to "Summary of Code.pdf" for the summary. The main content contains 266 words,
+and it is strongly recommended to read it before running the program.
+*/
 int main(int argc, char **argv)
 {
 	// Part 1 - handle command line options such as device selection, verbosity, etc.
